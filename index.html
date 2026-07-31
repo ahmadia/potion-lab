@@ -931,7 +931,7 @@ function exportSave(){
     a.href=url;a.download='fizzwick-potion-lab-save.json';
     document.body.appendChild(a);a.click();
     setTimeout(function(){URL.revokeObjectURL(url);a.remove();},1500);
-    toast(designFor(1),'Save file sent to Files.');
+    toast('otter','Save file sent to Files.');
   }catch(e){alert('Could not create the backup file.');}
 }
 function importSave(file){
@@ -941,12 +941,13 @@ function importSave(file){
     var d;try{d=JSON.parse(r.result);}catch(e){alert('That file could not be read.');return;}
     if(!d||!d.facts){alert('That does not look like a Potion Lab save.');return;}
     absorb(d);ensureSpecies();grantCompanions();
+    challenge=false;comps=0;$('play').classList.remove('challenge');fuseBar.classList.add('hide');
     drops=0;streak=0;queue=[];renaming=0;save();
     $('soundBtn').textContent=sound?'Sound on':'Sound off';
     $('soundBtn').setAttribute('aria-pressed',String(sound));
-    updateMode();paintDrops();updateMeta();
+    refreshModeChips();updateMode();paintDrops();updateMeta();
     if($('shelf').classList.contains('on'))buildShelf();else ask();
-    toast(designFor(1),'Progress restored.');
+    toast('otter','Progress restored.');
   };
   r.readAsText(file);
 }
@@ -990,8 +991,9 @@ function pick(){
   SECS.forEach(function(a){
     for(var b=1;b<=BMAX;b++){
       var f=getFact(a,b);
-      if(f.n===0||fkey(a,b)===lastKey)continue;
-      var w=challenge?(earned(f)?4:1):weight(f);   /* challenge drills what she's already lit */
+      if(fkey(a,b)===lastKey)continue;
+      if(!challenge&&f.n===0)continue;             /* normal play never front-loads unseen facts */
+      var w=challenge?(earned(f)?5:(f.n>0?2:1)):weight(f);   /* challenge leans on what she's lit, but stays varied */
       total+=w;pool.push({a:a,b:b,w:w,fresh:false});
     }
   });
@@ -1553,8 +1555,8 @@ $('nameBtn').onclick=takeName;
 $('nameIn').addEventListener('keydown',function(e){if(e.key==='Enter')takeName();});
 $('resetBtn').onclick=function(){
   if(!confirm('Empty every jar? The pets go back to being eggs too.'))return;
-  facts={};plates={};pets={};used={};species={};usedStories={};storyLog=[];brewed=0;drops=0;streak=0;queue=[];
-  ensureSpecies();preload();save();buildShelf();paintDrops();updateMeta();startWelcome();
+  facts={};plates={};pets={};used={};species={};usedStories={};storyLog=[];accessories={};featured=-1;brewed=0;drops=0;streak=0;queue=[];
+  ensureSpecies();grantCompanions();preload();save();buildShelf();paintDrops();updateMeta();startWelcome();
 };
 $('exportBtn').onclick=exportSave;
 $('importBtn').onclick=function(){$('importFile').click();};
