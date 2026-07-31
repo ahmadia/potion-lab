@@ -1275,12 +1275,19 @@ function showShelf(on){
 }
 
 /* ================= stories (the reward) ================= */
-function hatchedNames(){var a=[],k;for(k in pets){if(pets[k]&&pets[k].name)a.push(pets[k].name);}return a;}
-function fillStory(s){
-  var names=hatchedNames();
-  function one(ex){var pool=names.filter(function(n){return n!==ex;});return pool.length?pool[Math.floor(Math.random()*pool.length)]:null;}
-  var p1=one(null)||'your newest hatchling';
-  var p2=one(p1)||'another little one';
+function namedPetKeys(){var a=[],k;for(k in pets){if(pets[k]&&pets[k].name)a.push(k);}return a;}
+/* one pet stars in each tale: its name fills {pet} AND its picture is the one shown */
+function storyStar(){
+  var keys=namedPetKeys(),k,dg;
+  if(keys.length){k=keys[Math.floor(Math.random()*keys.length)];dg=designOfKey(k)||1;}
+  else{dg=designOfKey(SECS[0])||1;return {key:null,name:null,design:dg,hue:DHUE[dg]||'#6FE3B8'};}
+  return {key:k,name:pets[k].name,design:dg,hue:DHUE[dg]||'#6FE3B8'};
+}
+function fillStory(s, star){
+  var names=namedPetKeys().map(function(k){return pets[k].name;});
+  var p1=star||(names.length?names[Math.floor(Math.random()*names.length)]:'your newest hatchling');
+  var others=names.filter(function(n){return n!==p1;});
+  var p2=others.length?others[Math.floor(Math.random()*others.length)]:'another little one';
   return s.replace(/\{pet2\}/g,p2).replace(/\{pet\}/g,p1);
 }
 function pickStoryIndex(){
@@ -1291,14 +1298,13 @@ function pickStoryIndex(){
 }
 function showStory(){
   var i=pickStoryIndex();usedStories[i]=1;
-  var text=fillStory(STORIES[i]);
+  var st=storyStar();
+  var text=fillStory(STORIES[i], st.name);
   storyLog.push(text);save();
-  var named=SECS.filter(function(k){return pets[k]&&pets[k].name;});
-  var a=named.length?named[Math.floor(Math.random()*named.length)]:SECS[0];
   welcomeMode=false;bookReturn=false;
   $('storyTitle').textContent='A little lab tale';
   $('storyClose').textContent='Back to brewing';
-  $('storyPet').innerHTML=petSVG(designFor(a),96,true,hueOf(a)).replace('<svg','<svg class="big"');
+  $('storyPet').innerHTML=petSVG(st.design,96,true,st.hue).replace('<svg','<svg class="big"');
   $('storyText').textContent=text;
   $('done').classList.remove('on');
   $('story').classList.add('on');
@@ -1310,8 +1316,8 @@ function startWelcome(){
   welcomeMode=true;
   $('storyTitle').textContent='Welcome to the lab!';
   $('storyClose').textContent='See my lab →';
-  var a=SECS[Math.floor(Math.random()*SECS.length)];
-  $('storyPet').innerHTML=petSVG(designFor(a),96,true,hueOf(a)).replace('<svg','<svg class="big"');
+  var st=storyStar();
+  $('storyPet').innerHTML=petSVG(st.design,96,true,st.hue).replace('<svg','<svg class="big"');
   $('storyText').textContent=WELCOME;
   $('story').classList.add('on');
   beep([523,659,784,1046],0.24,0.09);
@@ -1332,12 +1338,11 @@ function buildStorybook(){
 /* re-read a collected tale; closing returns to the storybook */
 function readStory(i){
   bookReturn=true;welcomeMode=false;
-  var a=SECS.filter(function(k){return pets[k]&&pets[k].name;});
-  a=a.length?a[Math.floor(Math.random()*a.length)]:SECS[0];
+  var st=storyStar();
   $('storyTitle').textContent='Tale '+(i+1);
   $('storyClose').textContent='Back to my storybook';
-  $('storyPet').innerHTML=petSVG(designFor(a),96,true,hueOf(a)).replace('<svg','<svg class="big"');
-  $('storyText').textContent=fillStory(STORIES[i]);
+  $('storyPet').innerHTML=petSVG(st.design,96,true,st.hue).replace('<svg','<svg class="big"');
+  $('storyText').textContent=fillStory(STORIES[i], st.name);
   $('collections').classList.remove('on');
   $('story').classList.add('on');
   beep([523,659,784],0.18,0.06);
