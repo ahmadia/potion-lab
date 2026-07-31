@@ -138,6 +138,8 @@ header{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .danger{align-self:flex-start;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;margin-top:8px;
   color:rgba(255,127,168,.65);border-bottom:1px solid rgba(255,127,168,.3);padding-bottom:2px}
 .backup{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 6px}
+.compblock{border-bottom:1px solid rgba(239,227,200,.12);padding-bottom:12px;margin-bottom:18px}
+.companionhead{font-family:var(--ui);font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--amber);margin-bottom:10px}
 .settings{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:2px 0 8px}
 .setlabel{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--parchment-dim)}
 .modechip.live{color:var(--ink);background:var(--amber);border-color:var(--amber)}
@@ -338,7 +340,10 @@ var SUB={1:'one of everything',2:'doubles',3:'triples',4:'double the doubles',5:
 var SPECIES={1:'Dustwing Moth',2:'Pipistrelle Bat',3:'Bogwart Toad',4:'Emberling Dragon',
              5:'Cloudray',6:'Spiralshell Snail',7:'Tawny Owl',8:'Inkfoot Octopus',
              9:'Rustpaw Fox',10:'Prickle Hedgehog',11:'Snapclaw Crab',12:'Curlfin Seahorse',
-             13:'Lantern Firefly',14:'Twinkle Starfish'};
+             13:'Lantern Firefly',14:'Twinkle Starfish',15:'River Otter',16:'Panda'};
+/* granted-to-everyone companions (not tied to a practice section) */
+var COMPANIONS=[{id:'otter',design:15,hue:'#B0854E'},{id:'panda',design:16,hue:'#F0EEE8'}];
+var COMP={};COMPANIONS.forEach(function(c){COMP[c.id]=c;});
 /* each table gets a random creature drawn from this pool (fixed once per save) */
 var POOL=[1,2,3,4,5,6,7,8,9,10,11,12,13,14];
 
@@ -605,6 +610,22 @@ function petSVG(design,px,glow,hue){
   if(design===14) g='<path d="M24 9 L28 21 L41 21 L30 29 L34 42 L24 34 L14 42 L18 29 L7 21 L20 21 Z" fill="'+c+'"/>'+
     '<circle cx="21" cy="26" r="1.7" fill="'+d+'"/><circle cx="27" cy="26" r="1.7" fill="'+d+'"/>'+
     '<path d="M21 30 Q24 33 27 30" stroke="'+d+'" stroke-width="1.3" fill="none" stroke-linecap="round"/>';
+  if(design===15) g='<circle cx="15" cy="18" r="3.6" fill="'+c+'"/><circle cx="33" cy="18" r="3.6" fill="'+c+'"/>'+
+    '<circle cx="15" cy="18" r="1.6" fill="'+d+'" opacity=".35"/><circle cx="33" cy="18" r="1.6" fill="'+d+'" opacity=".35"/>'+
+    '<ellipse cx="24" cy="29" rx="10.5" ry="12" fill="'+c+'"/>'+
+    '<ellipse cx="24" cy="34" rx="6" ry="5.2" fill="#FFF6E2" opacity=".5"/>'+
+    '<circle cx="20" cy="25" r="1.8" fill="'+d+'"/><circle cx="28" cy="25" r="1.8" fill="'+d+'"/>'+
+    '<ellipse cx="24" cy="31" rx="2.3" ry="1.7" fill="'+d+'"/>'+
+    '<path d="M24 32.5 Q24 35 21.5 35 M24 32.5 Q24 35 26.5 35" stroke="'+d+'" stroke-width="1" fill="none" stroke-linecap="round" opacity=".7"/>'+
+    '<path d="M18 30 L11 29 M18 32 L11 33 M30 30 L37 29 M30 32 L37 33" stroke="'+d+'" stroke-width="0.7" opacity=".4"/>';
+  if(design===16) g='<circle cx="14" cy="17" r="4.6" fill="'+d+'"/><circle cx="34" cy="17" r="4.6" fill="'+d+'"/>'+
+    '<ellipse cx="24" cy="28" rx="12" ry="11" fill="'+c+'"/>'+
+    '<ellipse cx="19" cy="26" rx="3.4" ry="4.6" fill="'+d+'" transform="rotate(-15 19 26)"/>'+
+    '<ellipse cx="29" cy="26" rx="3.4" ry="4.6" fill="'+d+'" transform="rotate(15 29 26)"/>'+
+    '<circle cx="19.5" cy="25.5" r="1.5" fill="#FFF6E2"/><circle cx="28.5" cy="25.5" r="1.5" fill="#FFF6E2"/>'+
+    '<circle cx="19.5" cy="25.5" r="0.9" fill="'+d+'"/><circle cx="28.5" cy="25.5" r="0.9" fill="'+d+'"/>'+
+    '<ellipse cx="24" cy="32" rx="2" ry="1.5" fill="'+d+'"/>'+
+    '<path d="M22 34 Q24 36 26 34" stroke="'+d+'" stroke-width="1" fill="none" stroke-linecap="round"/>';
   var f=glow?' style="filter:drop-shadow(0 0 7px '+c+')"':'';
   return '<svg viewBox="0 0 48 48" width="'+px+'" height="'+px+'" aria-hidden="true"'+f+'>'+g+'</svg>';
 }
@@ -612,9 +633,15 @@ function petSVG(design,px,glow,hue){
    1 Dustwing Moth · 2 Pipistrelle Bat · 3 Bogwart Toad · 4 Emberling Dragon
    5 Cloudray · 6 Spiralshell Snail · 7 Tawny Owl · 8 Inkfoot Octopus
    9 Rustpaw Fox · 10 Prickle Hedgehog */
-function designFor(a){return SEC[a]?SEC[a].design:a;}
-function hueOf(a){return SEC[a]?SEC[a].hue:(HUES[a]||'#6FE3B8');}
+function designFor(a){return COMP[a]?COMP[a].design:(SEC[a]?SEC[a].design:a);}
+function hueOf(a){return COMP[a]?COMP[a].hue:(SEC[a]?SEC[a].hue:(HUES[a]||'#6FE3B8'));}
 function ensureSpecies(){}
+/* everyone starts with the River Otter and the Panda */
+function grantCompanions(){
+  COMPANIONS.forEach(function(c){
+    if(!pets[c.id])pets[c.id]={name:SPECIES[c.design].split(' ').pop(),xp:0};
+  });
+}
 function eggSVG(a,px){
   var c=hueOf(a);
   return '<svg viewBox="0 0 48 48" width="'+px+'" height="'+px+'" aria-hidden="true" style="opacity:.4">'+
@@ -668,7 +695,7 @@ function legacySave(){
   return null;
 }
 function doMigrate(legacy){
-  absorb(legacy);ensureSpecies();
+  absorb(legacy);ensureSpecies();grantCompanions();
   drops=0;streak=0;queue=[];renaming=0;
   save();                         /* write it under the new key */
   $('migrate').classList.remove('on');
@@ -707,7 +734,7 @@ function importSave(file){
   r.onload=function(){
     var d;try{d=JSON.parse(r.result);}catch(e){alert('That file could not be read.');return;}
     if(!d||!d.facts){alert('That does not look like a Potion Lab save.');return;}
-    absorb(d);ensureSpecies();
+    absorb(d);ensureSpecies();grantCompanions();
     drops=0;streak=0;queue=[];renaming=0;save();
     $('soundBtn').textContent=sound?'Sound on':'Sound off';
     $('soundBtn').setAttribute('aria-pressed',String(sound));
@@ -968,6 +995,15 @@ function finish(){
 /* ================= shelf ================= */
 function buildShelf(){
   var host=$('shelves');host.innerHTML='';
+  var cblock=document.createElement('div');cblock.className='rowblock compblock';
+  var chtml='<div class="companionhead">Your companions</div>';
+  COMPANIONS.forEach(function(c){
+    var pet=pets[c.id]||{name:'',xp:0};
+    chtml+='<div class="rowtop">'+petSVG(c.design,46,false,c.hue)+
+      '<div class="who"><h3>'+esc(pet.name||SPECIES[c.design])+' <em>'+SPECIES[c.design]+'</em></h3>'+
+      '<div class="petline">Always with you · <u data-ren="'+c.id+'">rename</u></div></div></div>';
+  });
+  cblock.innerHTML=chtml;host.appendChild(cblock);
   SECS.forEach(function(a){
     var done=rowDone(a),pet=getPet(a),block=document.createElement('div');
     block.className='rowblock';
@@ -1223,6 +1259,7 @@ document.addEventListener('keydown',function(e){
 /* ================= go ================= */
 var hadSave=load();
 buildSecs();                       /* fresh starts don't call absorb, so build here too */
+grantCompanions();                 /* everyone starts with the Otter and the Panda */
 ensureSpecies();
 preload();
 calm=true;                         /* always calm — no clock, no pressure */
