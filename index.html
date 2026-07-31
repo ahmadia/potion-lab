@@ -213,6 +213,19 @@ header{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .acccell.got{filter:none;border-color:rgba(255,192,97,.45);background:rgba(255,192,97,.1);cursor:pointer}
 .acccell.feat{border-color:var(--amber);box-shadow:0 0 12px rgba(255,192,97,.55)}
 .accnote{font-size:12px;color:var(--parchment-dim);margin:2px 0}
+.tabs{display:flex;gap:6px;width:100%;margin-bottom:4px}
+.tab{flex:1;padding:9px 4px;border-radius:10px;font-size:13px;border:1px solid rgba(239,227,200,.16);
+  color:var(--parchment-dim);background:rgba(239,227,200,.03)}
+.tab.active{color:var(--ink);background:var(--amber);border-color:var(--amber);font-weight:650}
+.colpanel{display:none;width:100%}
+.colpanel.on{display:block}
+.animgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;width:100%}
+.animcell{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;border-radius:10px;
+  border:1px solid rgba(239,227,200,.1);background:rgba(239,227,200,.03)}
+.animcell.got{border-color:rgba(255,192,97,.4);background:rgba(255,192,97,.07)}
+.animcell.locked{filter:grayscale(1) opacity(.4)}
+.animcell b{font-size:11px;color:var(--parchment);font-weight:500}
+.animcell small{font-size:9.5px;letter-spacing:.04em;color:var(--parchment-dim);text-align:center;line-height:1.15}
 .earnedbig{font-size:74px;line-height:1;animation:hatch .6s ease-out}
 .chalstart{align-self:center;margin:0 0 16px;padding:11px 24px;border-radius:999px;border:1px solid rgba(255,127,168,.5);
   color:#FF9FC0;background:rgba(255,127,168,.08);font-size:14px}
@@ -282,8 +295,7 @@ header{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
       <button class="chip modechip" id="modeAS">Add &amp; Subtract</button>
     </div>
     <div class="backup">
-      <button class="chip" id="storybookBtn">📖 My storybook</button>
-      <button class="chip" id="accBtn">🎒 My accessories</button>
+      <button class="chip" id="colBtn">📚 My collections</button>
       <button class="chip" id="exportBtn">Back up to Files</button>
       <button class="chip" id="importBtn">Restore from Files</button>
       <input type="file" id="importFile" accept="application/json,.json" hidden>
@@ -332,22 +344,18 @@ header{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   </div>
 </div>
 
-<div class="veil" id="storybook">
+<div class="veil" id="collections">
   <div class="card bookcard">
-    <h2>📖 My Storybook</h2>
-    <p class="bookcount" id="bookCount"></p>
-    <div class="bookgrid" id="bookGrid"></div>
-    <button class="go" id="bookClose">Close</button>
-  </div>
-</div>
-
-<div class="veil" id="accessories">
-  <div class="card bookcard">
-    <h2>🎒 My Accessories</h2>
-    <p class="bookcount" id="accCount"></p>
-    <div class="accgrid" id="accGrid"></div>
-    <p class="accnote">Tap one you've earned to show it on your companions.</p>
-    <button class="go" id="accClose">Close</button>
+    <div class="tabs">
+      <button class="tab" id="tabAnimals">🐾 Animals</button>
+      <button class="tab" id="tabStories">📖 Stories</button>
+      <button class="tab" id="tabAcc">🎒 Accessories</button>
+    </div>
+    <p class="bookcount" id="colCount"></p>
+    <div class="colpanel" id="panAnimals"><div class="animgrid" id="animGrid"></div></div>
+    <div class="colpanel" id="panStories"><div class="bookgrid" id="bookGrid"></div></div>
+    <div class="colpanel" id="panAcc"><div class="accgrid" id="accGrid"></div><p class="accnote">Tap one you've earned to show it on your companions.</p></div>
+    <button class="go" id="colClose">Close</button>
   </div>
 </div>
 
@@ -390,6 +398,9 @@ var SPECIES={1:'Dustwing Moth',2:'Pipistrelle Bat',3:'Bogwart Toad',4:'Emberling
 /* granted-to-everyone companions (not tied to a practice section) */
 var COMPANIONS=[{id:'otter',design:15,hue:'#B0854E'},{id:'panda',design:16,hue:'#F0EEE8'}];
 var COMP={};COMPANIONS.forEach(function(c){COMP[c.id]=c;});
+/* a representative hue per creature design 1..16 (for the Animals collection) */
+var DHUE={1:'#6FE3B8',2:'#FFC061',3:'#FF7FA8',4:'#B99BFF',5:'#6FC9E8',6:'#FF8E72',7:'#C7E36F',8:'#E58BE0',
+          9:'#7EA8FF',10:'#9D8DF1',11:'#FF9F6F',12:'#6FD9C0',13:'#FFD86F',14:'#F28FB6',15:'#B0854E',16:'#F0EEE8'};
 
 /* 100 collectible accessories (emoji), earned one per cleared challenge round */
 var ACCESSORIES=("🎩 🧢 👑 👒 🎓 ⛑️ 🪖 🎀 🕶️ 👓 🧣 👔 🧥 🦺 🧤 🥾 👢 👟 🩰 🥽 "+
@@ -540,7 +551,147 @@ var STORIES=[
 "When the music box played, {pet} spun left and {pet2} spun right. They got dizzy at exactly the same time and flopped into the same beanbag.",
 "{pet} gave {pet2} half of its raspberry, and got back half of the half. This went on for quite a while, so Fizzwick quietly brought more raspberries.",
 "A butterfly visited the lab, and {pet} and {pet2} followed it from window to window all afternoon. When it finally fluttered home, they waved goodbye with their tails.",
-"{pet} yawned, which made {pet2} yawn, which made Fizzwick yawn so big his hat tipped over. That's how the whole lab knew it was officially bedtime."
+"{pet} yawned, which made {pet2} yawn, which made Fizzwick yawn so big his hat tipped over. That's how the whole lab knew it was officially bedtime.",
+"The big copper cauldron learned to purr this week. Now it simmers soup while humming like a happy cat.",
+"{pet} discovered that the copper kettle makes a wonderful mirror. Now it practices its bravest face there every morning.",
+"Rain fell inside the lab today, but only over the flower pots. Fizzwick held out a teacup and caught one warm drop.",
+"A moonbeam slipped through the window and curled up on Fizzwick's chair. He let it stay until morning.",
+"{pet} and {pet2} built a blanket fort under the workbench. Fizzwick knocked politely and was allowed in, but only with cocoa.",
+"Fizzwick taught {pet} to stir with its tail. The soup came out swirly and twice as delicious.",
+"Fizzwick planted a button in the garden as a joke. By Friday it had grown into a coat that fit him perfectly.",
+"The teapot whistled a brand-new song at breakfast. Fizzwick clapped, and the spoons tapped along on the table.",
+"{pet} fell asleep inside the mixing bowl again. Fizzwick baked around it, very quietly.",
+"One jar of star-dust refused to stop twinkling at bedtime. Fizzwick tucked a tiny blanket over it, and it dimmed with a happy sigh.",
+"{pet} hid behind the big cauldron, and {pet2} counted to ten in giggles. The game ended in a pile of happy squeaks.",
+"The lab's front door learned to say welcome home. It says it to everyone, even the mail snail.",
+"A butterfly landed on {pet}'s nose and would not leave. Fizzwick said that means a whole week of good luck, and it did.",
+"Fizzwick brewed a potion that smelled exactly like fresh pancakes. The whole lab lined up for a sniff.",
+"A small cloud moved into the rafters, and now it snows one snowflake every evening. Fizzwick catches it on his nose for luck.",
+"{pet} sneezed near the glitter shelf. The lab sparkled for three days, and nobody minded one bit.",
+"The broom swept the floor into the shape of a heart. Fizzwick left it there all day.",
+"On the first snowy morning, {pet} and {pet2} made one snow-creature together. It had {pet}'s smile and {pet2}'s wiggly ears, and Fizzwick said it was a masterpiece.",
+"Somewhere under the third shelf lives a mouse who tidies bottle caps. Fizzwick leaves out a crumb of gingerbread to say thank you.",
+"When the rain drummed on the roof, {pet} drummed back on a pot. Fizzwick says it was the best concert of the year.",
+"Fizzwick's ladle fell in love with the soup pot. Now dinner always tastes a little sweeter.",
+"Tonight the candles decided to flicker in time with the crickets. Fizzwick turned the pages of his book to the same beat.",
+"{pet} tried to catch a moonbeam in a jar. The moonbeam let itself be caught, just until bedtime.",
+"The bubbles from the blue cauldron floated up and stuck to the ceiling like stars. Fizzwick named every single one.",
+"{pet} found a glowing pebble and gave it to {pet2}. {pet2} gave it right back, so now they take turns keeping it warm.",
+"A rainbow got tangled in the laundry line behind the lab. Fizzwick untangled it gently, and it left a stripe of gold on his towel to say thanks.",
+"Fizzwick found tiny footprints in the flour, leading to a tiny nap. {pet} was dreaming in the warmest corner of the pantry, dusted like a sugar cookie.",
+"Fizzwick baked bread with a pinch of giggle powder by mistake. The loaf chuckled softly every time he sliced it.",
+"The moon peeked in the window to see what was bubbling. Fizzwick poured it a saucer of cocoa, and it glowed a little brighter.",
+"{pet} planted its favorite pebble in the garden. It grew into a pile of favorite pebbles, which is exactly what {pet} hoped.",
+"Every mushroom in the garden opened a tiny umbrella at noon. It wasn't even raining — they just liked the look.",
+"Fizzwick left two mugs of cocoa cooling on the bench. When he came back, {pet} and {pet2} had cocoa mustaches and very innocent faces.",
+"Fizzwick found a puddle that showed the sky from yesterday. He and the puddle watched the old sunset together.",
+"The bubbles all followed {pet} around the lab today. Fizzwick says bubbles know a good leader when they see one.",
+"The stairs creak in do, re, mi. Fizzwick hops down them every morning to play a tune.",
+"A firefly asked to borrow a jar for the night. In the morning it left the jar washed, dried, and glowing faintly with thanks.",
+"{pet} learned to hum along with the cauldron. Now they perform duets every evening at simmer time.",
+"Wind chimes on the porch rang out three cheerful notes. Fizzwick says that means good soup weather.",
+"{pet} and {pet2} raced twice around the herb garden. It was a tie both times, which called for a two-winner picnic.",
+"The recipe book turned its own pages to Fizzwick's favorite recipe. Even books like cinnamon buns.",
+"Fizzwick made a potion of bounce, and {pet} tested it, boing by boing. The verdict: perfect, especially the landing on the big soft chair.",
+"Fizzwick whispered good morning to the seeds in the window box. By lunch they had all sprouted, just to be polite.",
+"Steam from the kettle drew a little dragon in the air. It bowed to Fizzwick, then melted into a smell of mint.",
+"{pet} hid Fizzwick's spoon in the flower pot, then forgot where. The spoon sprouted mint leaves before they found it, so pudding smelled wonderful.",
+"One drawer in the desk holds nothing but nice smells. Fizzwick opens it on gray days and lets out a puff of summer.",
+"The music box played, and {pet} twirled while {pet2} clapped. Then they swapped, twirl for clap, until the moon came up.",
+"The doormat shook itself clean and took a bow. Fizzwick clapped so hard he dropped his toast, butter side up.",
+"On the coldest night, {pet} slept curled around the warm teapot. The teapot was so pleased it stayed warm until sunrise.",
+"A star came loose and rolled under the workbench. Fizzwick polished it with his sleeve and tossed it gently back into the sky.",
+"The purple potion turned out to be shy. It only bubbles when nobody is looking, so Fizzwick pretends not to look.",
+"{pet} tasted a raindrop and declared it needed honey. Fizzwick agreed, and they had honey-rain tea on the porch.",
+"Fizzwick's quill drew a small boat on the page all by itself. Then it drew a sea, then a sun, then it signed its name.",
+"{pet} whispered a secret into {pet2}'s ear, and {pet2} laughed so hard a bubble came out. The secret is safe, but the bubble told everyone it was funny.",
+"Warm rolls floated out of the oven in a slow parade. Fizzwick bowed to each one before eating it.",
+"The stars came out one by one, and {pet} tried to count them all. It fell asleep at eleven, which Fizzwick says is a very fine number.",
+"The snowglobe on the shelf makes its own weather now. Today it chose sunshine with a chance of confetti.",
+"A breeze knocked politely at the window. Fizzwick let it in, and it fluffed every pillow in the lab before leaving.",
+"{pet} found the echo that lives in the empty cauldron. They said hello to each other until suppertime.",
+"Fizzwick taught the cuckoo clock to say sweet dreams instead of cuckoo at night. The whole lab sleeps better now.",
+"At bedtime, {pet} and {pet2} argued sweetly over the middle of the pillow. They solved it the usual way: both in the middle.",
+"The jam jars traded lids overnight as a prank. Fizzwick laughed and left them that way — strawberry looks lovely in blueberry's lid.",
+"Fizzwick let {pet} lick the cocoa spoon. The spoon has been {pet}'s best friend ever since.",
+"Deep in the pantry, a pumpkin grew too round for its shelf. Fizzwick rolled it to the kitchen, and it rumbled along like a happy little wagon.",
+"{pet} chased its own reflection around the shiny kettle until they both got dizzy. Then they leaned on each other and rested.",
+"The green potion fizzed out one perfect bubble that would not pop. It follows Fizzwick around now like a tiny glass balloon.",
+"{pet} taught {pet2} its favorite splash in the rain barrel. Fizzwick dried them both with the warm towel and called them puddle champions.",
+"Fizzwick tuned the dripping tap until it dripped a lullaby. Now even the dishes doze in the sink.",
+"A snowflake landed on {pet}'s ear and didn't melt for a whole minute. {pet} stood very still, proud as a mountain.",
+"On Tuesday the lab smelled like vanilla for no reason at all. Fizzwick decided some days are just like that, and made cookies to match.",
+"The garden gate squeaked hello twice. Fizzwick oiled it anyway, and now it whispers hello instead.",
+"{pet} wanted to help with the laundry, so it rode a pillowcase down the stairs. Fizzwick gave it a ten out of ten.",
+"A cloud shaped like a teacup drifted past the chimney. Fizzwick raised his real teacup, and they toasted each other.",
+"{pet} and {pet2} tried to share one scarf on a chilly morning. They walked around all day like a small woolly caterpillar.",
+"The candle by the window burns in colors when it's happy. Tonight it went through the whole rainbow twice.",
+"The garden grew one strawberry bigger than {pet}'s head. They ate it together with two spoons and one very happy silence.",
+"Fizzwick mixed moonlight and honey and got a spoonful of quiet. He saves it for nights when the crickets get carried away.",
+"The bath filled itself with warm bubbles at exactly seven. Fizzwick says a tidy lab starts with a clean chin.",
+"{pet} blew its first bubble-breath today. It came out shaped like a heart, and Fizzwick caught it in a jar labeled Keep Forever.",
+"An acorn knocked on the roof, then another, then ten more. The oak tree was just saying goodnight the only way it knows.",
+"When the fireflies came out, {pet} blinked hello and {pet2} blinked it twice. The fireflies spelled back a glowing word that looked a lot like friends.",
+"Fizzwick found a tiny door behind the flour sack. Behind it was an even tinier kitchen, with an even tinier pie cooling on the sill.",
+"At moonrise, {pet} sang a tiny song no bigger than a teaspoon. The moon dimmed and brightened, which is how moons clap.",
+"The mop and the broom held a dance contest at midnight. Fizzwick heard swishing and gave them both first prize at breakfast.",
+"{pet} sorted Fizzwick's buttons by shininess without being asked. Fizzwick sewed the shiniest one onto {pet}'s blanket as a badge.",
+"All the potion corks popped at once and bounced like popcorn. Fizzwick caught them in his apron, laughing too hard to count.",
+"{pet} sorted the seeds and {pet2} planted them upside down. The flowers grew anyway, and some came up whistling.",
+"The lab has a little cat door, though the lab has no cat. Sometimes the wind uses it, just to feel included.",
+"Fizzwick sneezed, and {pet} said bless you in its own little language. Fizzwick understood it perfectly.",
+"Fizzwick sorted the star-dust by twinkle. The sleepiest jar got the shelf closest to the pillow.",
+"A letter arrived with no words, only a pressed flower. Fizzwick wrote back with a pressed clover and felt lucky all day.",
+"{pet} tried to water the garden and watered itself instead. The flowers leaned over and dripped on it gently, to say thanks anyway.",
+"Fizzwick's stew needed one stir every hour, so {pet} and {pet2} took shifts. The stew came out tasting like teamwork, which is a lot like carrots.",
+"The porridge pot made one extra bowl this morning. Fizzwick set it on the windowsill, and by noon it was empty and somebody had left a daisy.",
+"The candle flames bowed when {pet} walked past tonight. Fizzwick says even fire knows a gentle heart.",
+"Frost drew ferns on the window overnight. Fizzwick drew a smiling sun beside them, and the frost let it stay till lunch.",
+"{pet} borrowed Fizzwick's biggest ladle and used it as a boat in the rain barrel. The voyage lasted all afternoon and discovered two leaves and a lucky cork.",
+"The orange potion tastes like the last day of summer. Fizzwick only brews it in tiny sips.",
+"{pet} made a boat of bark, and {pet2} made a sail of leaf. The stream carried it to the reeds, where the frogs voted it best in show.",
+"High on the top shelf sits a jar labeled Extra Hugs. Fizzwick has never needed to explain it.",
+"Fizzwick wrote {pet}'s name in star-dust on the workbench. It glowed all night like a small friendly constellation.",
+"Fizzwick raced a snail across the garden path and lost on purpose. The snail wore its medal for a week.",
+"{pet} took one careful lick of the giggle potion. It laughed itself into a hiccup, and the hiccup laughed too.",
+"The chimney blew smoke rings shaped like ducks. Fizzwick counted seven before they quacked off into the clouds.",
+"In the sunniest window, {pet} and {pet2} napped in one warm heap. Fizzwick could not tell where one ended and the other began, so he covered the whole heap with one blanket.",
+"The blanket on the big chair has learned to tuck people in. Fizzwick sat down for one minute and woke up two hours later, cozy as toast.",
+"When the wind sang down the chimney, {pet} sang back louder. The wind was so impressed it left a feather as a prize.",
+"A moth in a dusty corner asked for a nightlight. Fizzwick gave it the smallest glowing jar, and now that corner is the warmest in the lab.",
+"The well out back echoes compliments. Say hello down it, and it says hello, nice voice, back.",
+"{pet} decided the watering can was its new house. Fizzwick watered the flowers with a teacup all week, happy to share.",
+"{pet} drew Fizzwick with a stick in the mud, and {pet2} added a crown. Fizzwick liked it so much he walked taller all afternoon.",
+"Fizzwick invented a potion for untangling string. The string liked being a tangle, so he let it be, and now it naps on a hook, happily knotted.",
+"Thunder rumbled far away, so the lab hummed back, low and friendly. The storm turned into plain rain and stayed for tea on the roof.",
+"A ladybug hired {pet} as a mountain and climbed it all morning. {pet} stood noble and still, except for one giggle.",
+"The measuring cups nest together every night, biggest hugging smallest. Fizzwick tiptoes past so he won't wake them.",
+"A slow bumblebee gave {pet} and {pet2} a tour of the garden. The tour ended at the best flower, which the bee let them smell first.",
+"A sunbeam took the whole afternoon crossing the lab floor. Fizzwick moved his chair three times to keep it company.",
+"{pet} dreamed so sweetly that a little cloud of dream-bubbles rose off its ears. Fizzwick watched one float by and saw pancakes in it.",
+"Fizzwick's shadow got up early and swept the porch before he woke. He thanked it by standing extra tall all day.",
+"The bees left a thimble of honey on the doorstep. Fizzwick left a thimble of tea in trade, and now it's a tradition.",
+"{pet} stood guard over the cooling cookies, very serious, very brave. Its pay was one warm cookie, delivered immediately.",
+"{pet} tried to teach {pet2} to whistle. What came out was a squeak and a pop, so they invented squeak-pop music instead.",
+"One bubble in the cauldron came out square. Fizzwick kept it on the desk as a paperweight until it politely popped on Sunday.",
+"The bathwater turned bright blue when {pet} hopped in with a potion drop on its paw. Fizzwick said it looked like bathing in a piece of sky.",
+"The lullaby potion escaped its bottle and settled into the curtains. Now the whole room hums when the wind moves.",
+"{pet} and {pet2} helped bottle the sunset potion. One held the funnel, one held their breath, and the whole shelf turned orange and gold.",
+"Fizzwick counted the stars from the roof and got a different number twice. The stars admitted that a few of them had been dancing around.",
+"{pet} learned to open the pantry with one nudge. Now the pantry pretends to be locked, just for the fun of the nudge.",
+"A tiny tornado no bigger than a teaspoon toured the lab. It dusted every shelf on its way and left through the keyhole, very pleased.",
+"When Fizzwick lost track of time, {pet} bonged like a clock and {pet2} cuckooed. Dinner was right on schedule.",
+"The pickle jar burped so loudly it startled the candles. Everyone flickered, then everyone laughed.",
+"On rainy days {pet} keeps the window company. Together they watch the drops race down the glass, and {pet} always cheers for the small one.",
+"Fizzwick hung a swing from the big oak for visiting fireflies. On summer nights it looks like a slow comet going back and forth.",
+"{pet} found one mitten and {pet2} found the other. They wore one each and held paws in between, which kept everybody warm.",
+"The library ladder rolls Fizzwick to whatever book he's thinking about. Today it rolled him straight to the cookbooks, which felt like a hint.",
+"{pet} wrapped itself in the map of the garden and became a small paper mountain. Fizzwick drew it onto the map, right between the roses and the beans.",
+"Somewhere in the walls, warm water pipes gurgle a song at bathtime. Fizzwick knows all the words, though there aren't any.",
+"On the night of shooting stars, {pet} wished for {pet2} to be happy, and {pet2} wished the same right back. The sky twinkled extra, because that's its favorite kind of wish.",
+"The last drop of the pink potion didn't want to leave the bottle. Fizzwick promised to brew more tomorrow, and it hopped out happily.",
+"Fizzwick brewed a tiny storm in a teacup, and {pet} sailed a walnut shell across it. Both of them agreed it was the best voyage in lab history.",
+"Fizzwick painted the garden fence, and the fence blushed an even deeper red. Some fences are just like that, he said, patting a post."
 ];
 /* ===== STORY-DATA-END ===== */
 var WELCOME="Welcome to Fizzwick's Potion Lab! Fizzwick has been waiting for a new potion-maker. He lit every candle, dusted off the big copper cauldron, and set out ten little eggs — each one hatches into a friend as you fill its shelf with glowing jars. Every time you finish a potion, come back to your storybook to hear what everyone has been up to. Ready to brew?";
@@ -1171,7 +1322,7 @@ function buildStorybook(){
     if(owned){(function(idx){el.onclick=function(){readStory(idx);};})(i);}
     host.appendChild(el);
   }
-  $('bookCount').textContent=got+' of '+STORIES.length+' tales collected';
+  $('colCount').textContent=got+' of '+STORIES.length+' tales collected';
 }
 /* re-read a collected tale; closing returns to the storybook */
 function readStory(i){
@@ -1182,7 +1333,7 @@ function readStory(i){
   $('storyClose').textContent='Back to my storybook';
   $('storyPet').innerHTML=petSVG(designFor(a),96,true,hueOf(a)).replace('<svg','<svg class="big"');
   $('storyText').textContent=fillStory(STORIES[i]);
-  $('storybook').classList.remove('on');
+  $('collections').classList.remove('on');
   $('story').classList.add('on');
   beep([523,659,784],0.18,0.06);
 }
@@ -1286,7 +1437,7 @@ function buildAccessories(){
     if(owned){(function(idx){el.onclick=function(){setFeatured(idx);};})(i);}
     host.appendChild(el);
   }
-  $('accCount').textContent=countAcc()+' of '+ACCESSORIES.length+' accessories earned';
+  $('colCount').textContent=countAcc()+' of '+ACCESSORIES.length+' accessories earned';
 }
 function setFeatured(i){featured=(featured===i)?-1:i;save();buildAccessories();}
 function paintComps(){
@@ -1333,6 +1484,41 @@ function earnAccessory(){
   $('earned').classList.add('on');
 }
 
+/* ================= collections hub (Animals · Stories · Accessories) ================= */
+function designOfKey(k){
+  if(COMP[k])return COMP[k].design;
+  if(/^\d+$/.test(k))return parseInt(k,10);          /* multiplication section = its number */
+  var m=/^a(\d+)$/.exec(k);if(m)return AS_DESIGN[parseInt(m[1],10)-1];
+  m=/^s(\d+)$/.exec(k);if(m)return AS_DESIGN[10+parseInt(m[1],10)-1];
+  return null;
+}
+function buildAnimalsCollection(){
+  var host=$('animGrid');host.innerHTML='';
+  var owned={},k,got=0,ND=16,d;
+  COMPANIONS.forEach(function(c){owned[c.design]=1;});
+  for(k in pets){if(pets[k]&&pets[k].name){var dg=designOfKey(k);if(dg)owned[dg]=1;}}
+  for(d=1;d<=ND;d++){
+    var has=!!owned[d];if(has)got++;
+    var el=document.createElement('div');
+    el.className='animcell'+(has?' got':' locked');
+    el.innerHTML=petSVG(d,42,false,DHUE[d])+'<small>'+(has?SPECIES[d]:'???')+'</small>';
+    host.appendChild(el);
+  }
+  $('colCount').textContent=got+' of '+ND+' animals discovered';
+}
+function colTab(name){
+  $('panAnimals').classList.toggle('on',name==='Animals');
+  $('panStories').classList.toggle('on',name==='Stories');
+  $('panAcc').classList.toggle('on',name==='Acc');
+  $('tabAnimals').classList.toggle('active',name==='Animals');
+  $('tabStories').classList.toggle('active',name==='Stories');
+  $('tabAcc').classList.toggle('active',name==='Acc');
+  if(name==='Animals')buildAnimalsCollection();
+  else if(name==='Stories')buildStorybook();
+  else buildAccessories();
+}
+function openCollections(name){colTab(name||'Animals');$('collections').classList.add('on');}
+
 /* ================= wiring ================= */
 $('shelfBtn').onclick=function(){showShelf(!$('shelf').classList.contains('on'));};
 $('brewBtn').onclick=function(){showShelf(false);};
@@ -1368,21 +1554,22 @@ $('chartClose').onclick=closeChart;
 $('storyBtn').onclick=showStory;
 $('storyClose').onclick=function(){
   $('story').classList.remove('on');
-  if(bookReturn){bookReturn=false;buildStorybook();$('storybook').classList.add('on');return;}
+  if(bookReturn){bookReturn=false;openCollections('Stories');return;}
   if(welcomeMode){welcomeMode=false;showShelf(true);return;}
   drops=0;paintDrops();updateMeta();ask();
 };
-$('storybookBtn').onclick=function(){buildStorybook();$('storybook').classList.add('on');};
-$('bookClose').onclick=function(){$('storybook').classList.remove('on');};
-$('accBtn').onclick=function(){buildAccessories();$('accessories').classList.add('on');};
-$('accClose').onclick=function(){$('accessories').classList.remove('on');};
+$('colBtn').onclick=function(){openCollections('Animals');};
+$('colClose').onclick=function(){$('collections').classList.remove('on');if($('shelf').classList.contains('on'))buildShelf();};
+$('tabAnimals').onclick=function(){colTab('Animals');};
+$('tabStories').onclick=function(){colTab('Stories');};
+$('tabAcc').onclick=function(){colTab('Acc');};
 $('gatherBtn').onclick=startChallenge;
 $('chalDone').onclick=endChallenge;
 $('earnedKeep').onclick=function(){$('earned').classList.remove('on');challengeAsk();};
 $('earnedStop').onclick=function(){$('earned').classList.remove('on');endChallenge();};
-function anyVeil(){return $('shelf').classList.contains('on')||$('done').classList.contains('on')||$('namer').classList.contains('on')||$('chart').classList.contains('on')||$('story').classList.contains('on')||$('storybook').classList.contains('on')||$('accessories').classList.contains('on')||$('earned').classList.contains('on')||$('migrate').classList.contains('on');}
+function anyVeil(){return $('shelf').classList.contains('on')||$('done').classList.contains('on')||$('namer').classList.contains('on')||$('chart').classList.contains('on')||$('story').classList.contains('on')||$('collections').classList.contains('on')||$('earned').classList.contains('on')||$('migrate').classList.contains('on');}
 document.addEventListener('keydown',function(e){
-  if(e.key==='Escape'){closeChart();$('storybook').classList.remove('on');return;}
+  if(e.key==='Escape'){closeChart();$('collections').classList.remove('on');return;}
   if(anyVeil())return;
   var n=parseInt(e.key,10);
   if(n>=1&&n<=4&&rack.children[n-1])rack.children[n-1].click();
