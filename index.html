@@ -991,12 +991,15 @@ function pick(){
     for(var b=1;b<=BMAX;b++){
       var f=getFact(a,b);
       if(f.n===0||fkey(a,b)===lastKey)continue;
-      var w=weight(f);total+=w;pool.push({a:a,b:b,w:w,fresh:false});
+      var w=challenge?(earned(f)?4:1):weight(f);   /* challenge drills what she's already lit */
+      total+=w;pool.push({a:a,b:b,w:w,fresh:false});
     }
   });
-  var nu=nextUnseen();
-  if(nu&&(inProgress()<4||!pool.length)){pool.push({a:nu.a,b:nu.b,w:6,fresh:true});total+=6;}
-  if(!pool.length)return {a:SECS[0],b:1,fresh:false};
+  if(!challenge){                                  /* no brand-new facts under the clock */
+    var nu=nextUnseen();
+    if(nu&&(inProgress()<4||!pool.length)){pool.push({a:nu.a,b:nu.b,w:6,fresh:true});total+=6;}
+  }
+  if(!pool.length){var nu2=nextUnseen();return nu2?{a:nu2.a,b:nu2.b,fresh:true}:{a:SECS[0],b:1,fresh:false};}
   var r=Math.random()*total;
   for(var i=0;i<pool.length;i++){r-=pool[i].w;if(r<=0)return pool[i];}
   return pool[pool.length-1];
@@ -1060,9 +1063,10 @@ function ask(){
   lastKey=fkey(a,b);
   paintCauldron(hueOf(a));
   var pet=getPet(a);
-  if(p.fresh) tag.textContent='New ingredient';
+  if(challenge) tag.textContent='⏱️ Quick!';
+  else if(p.fresh) tag.textContent='New ingredient';
   else if(earned(f)) tag.textContent=(pet&&pet.name)?pet.name+' is watching':'You know this one';
-  else tag.textContent=calm?('Learning · '+Math.min(f.s,REPS)+' of '+REPS):'Still learning';
+  else tag.textContent='Learning · '+Math.min(f.s,REPS)+' of '+REPS;
   tag.classList.add('on');
   question.innerHTML=cur.left+'<span class="op">'+cur.op+'</span>'+cur.right+'<span class="op">=</span><span class="ask">?</span>';
   say.textContent='';say.className='say';
@@ -1215,8 +1219,9 @@ function buildShelf(){
   var chtml='<div class="companionhead">Your companions</div>';
   COMPANIONS.forEach(function(c){
     var pet=pets[c.id]||{name:'',xp:0};
+    var sp=SPECIES[c.design], nm=pet.name||sp, showSp=(nm!==sp && nm!==sp.split(' ').pop())?' <em>'+sp+'</em>':'';
     chtml+='<div class="rowtop">'+petSVG(c.design,46,false,c.hue)+
-      '<div class="who"><h3>'+esc(pet.name||SPECIES[c.design])+' <em>'+SPECIES[c.design]+'</em>'+
+      '<div class="who"><h3>'+esc(nm)+showSp+
       (featured>=0&&accessories[featured]?'<span class="featbadge">'+ACCESSORIES[featured]+'</span>':'')+'</h3>'+
       '<div class="petline">Always with you · <u data-ren="'+c.id+'">rename</u></div></div></div>';
   });

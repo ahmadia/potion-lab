@@ -12,8 +12,19 @@ import as a fallback.
 Single self-contained `index.html` + service worker for offline play. Add it to
 your iPad Home Screen to install it as an app.
 
-## Roadmap
-See the planning doc for the full v2 spec (multiplication + add/subtract modes,
-250 numbered stories, 100 accessories via a timed challenge, River Otter & Panda).
+## Features
+- **Two practice modes** — times tables, or addition & subtraction within 20 —
+  switched from a tucked-away shelf toggle; each keeps its own progress.
+- **Calm by default** — no timer, no penalties; a jar lights after 3 correct.
+- **Peek helper** — a multiplication grid (count-up) or a 0–20 number line
+  (count on / count back) so a stuck question becomes a quick look-up.
+- **Companions** — everyone starts with a River Otter and a Panda; more animals
+  hatch as you finish a shelf.
+- **250 collectible stories** and **100 accessories**, in a **Collections** hub
+  (Animals · Stories · Accessories).
+- **Component-Gathering Challenge** — an opt-in *timed, no-peek* mode; gather 5
+  quick answers to earn an accessory for your animals.
+- **Progress that travels** — auto load-in from the original game, plus
+  Backup/Restore to the Files app.
 
 🤖 Built with [Claude Code](https://claude.com/claude-code)
