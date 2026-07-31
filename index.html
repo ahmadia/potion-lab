@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fizzwick's Potion Lab — no rush</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1B1120">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Potion Lab">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<style>
+:root{
+  --night:#1B1120;--wood:#4A3328;--wood-lit:#5E4232;
+  --parchment:#EFE3C8;--parchment-dim:#C9B896;--ink:#2C1F1A;
+  --amber:#FFC061;--candle:rgba(255,192,97,.30);
+  --display:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+  --ui:ui-sans-serif,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{margin:0;font-family:var(--ui);color:var(--parchment);
+  background:radial-gradient(120% 80% at 50% -10%,#3A2440 0%,rgba(58,36,64,0) 60%),
+    radial-gradient(90% 60% at 50% 40%,var(--candle) 0%,rgba(0,0,0,0) 70%),var(--night);
+  background-attachment:fixed;min-height:100dvh;overflow-x:hidden}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:4px}
+.wrap{max-width:760px;margin:0 auto;padding:14px 16px 24px;min-height:100dvh;display:flex;flex-direction:column;gap:14px}
+header{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.mark{font-family:var(--display);font-size:17px;flex:1;line-height:1.15;min-width:120px}
+.mark small{display:block;font-family:var(--ui);font-size:10.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--parchment-dim);margin-top:3px}
+.chip{border:1px solid rgba(239,227,200,.22);border-radius:999px;padding:7px 12px;font-size:12.5px;
+  color:var(--parchment-dim);background:rgba(239,227,200,.04);transition:.18s}
+.chip:hover{color:var(--parchment);border-color:rgba(255,192,97,.5)}
+.chip.live{color:var(--amber);border-color:rgba(255,192,97,.45)}
+
+.fuse{position:relative;height:3px;border-radius:2px;background:rgba(239,227,200,.13)}
+.fuse.hide{visibility:hidden}
+.fuse i{position:absolute;inset:0 auto 0 0;border-radius:2px;width:100%;transform-origin:left;
+  background:linear-gradient(90deg,rgba(255,192,97,.25),var(--amber))}
+.fuse i::after{content:"";position:absolute;right:-4px;top:50%;width:11px;height:11px;transform:translateY(-50%);
+  border-radius:50%;background:radial-gradient(circle,#FFF0C9 0%,var(--amber) 45%,rgba(255,192,97,0) 72%)}
+
+.stage{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:0}
+.cauldron{position:relative;width:230px;height:132px}
+.brew{position:absolute;left:14px;right:14px;top:14px;height:26px;border-radius:50%;filter:blur(1px);opacity:.9;transition:background .5s}
+.pot{position:absolute;inset:22px 0 0 0;border-radius:0 0 110px 110px / 0 0 78px 78px;
+  background:linear-gradient(180deg,#3B2B3F,#241A2A);
+  box-shadow:inset 0 12px 22px rgba(0,0,0,.55),0 16px 34px rgba(0,0,0,.45);
+  border:1px solid rgba(239,227,200,.10);border-top:none}
+.rim{position:absolute;left:-6px;right:-6px;top:16px;height:16px;border-radius:50%;
+  background:linear-gradient(180deg,#5B4460,#33243A);border:1px solid rgba(239,227,200,.14)}
+.glow{position:absolute;left:50%;top:6px;width:180px;height:80px;transform:translateX(-50%);opacity:.34;filter:blur(9px);transition:background .5s}
+.bubble{position:absolute;bottom:44px;width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.5);animation:rise 3.4s ease-in infinite}
+@keyframes rise{0%{transform:translateY(0) scale(.5);opacity:0}25%{opacity:.75}100%{transform:translateY(-58px) scale(1.15);opacity:0}}
+.cauldron.pop .glow{animation:flare .5s ease-out}
+@keyframes flare{0%{opacity:.34}35%{opacity:.95}100%{opacity:.34}}
+
+.feed{position:absolute;top:2px;right:6px;display:flex;align-items:center;gap:6px;opacity:0;
+  transform:translateY(6px);transition:opacity .2s,transform .2s;pointer-events:none}
+.feed.on{opacity:1;transform:translateY(0)}
+.feed b{font-family:var(--display);font-size:15px;color:var(--amber)}
+
+.q{font-family:var(--display);font-size:clamp(40px,12vw,66px);line-height:1;text-align:center;
+  font-variant-numeric:tabular-nums;text-shadow:0 0 26px rgba(255,192,97,.30)}
+.q .op{color:var(--amber);opacity:.85;margin:0 .12em}
+.q .ask{color:var(--parchment-dim)}
+.tag{font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--parchment-dim);
+  border:1px solid rgba(239,227,200,.2);border-radius:999px;padding:3px 10px;opacity:0;transition:opacity .25s}
+.tag.on{opacity:.9}
+.say{min-height:20px;font-size:13.5px;color:var(--parchment-dim);text-align:center;padding:0 8px}
+.say.good{color:#6FE3B8}
+.say.miss{color:var(--amber)}
+
+.rack{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:620px){.rack{grid-template-columns:repeat(4,1fr);gap:14px}}
+.bottle{position:relative;display:flex;flex-direction:column;align-items:center;padding:6px 0 0;transition:transform .14s}
+.bottle:active{transform:translateY(2px) scale(.98)}
+.cork{width:20px;height:11px;border-radius:3px 3px 2px 2px;background:linear-gradient(180deg,#8A6A45,#6B4F32);border:1px solid rgba(0,0,0,.3)}
+.neck{width:15px;height:12px;background:rgba(239,227,200,.13);border-left:1px solid rgba(239,227,200,.18);border-right:1px solid rgba(239,227,200,.18)}
+.glass{position:relative;width:100%;min-height:92px;border-radius:12px 12px 20px 20px;
+  background:linear-gradient(160deg,rgba(239,227,200,.13),rgba(239,227,200,.05));
+  border:1px solid rgba(239,227,200,.20);overflow:hidden;display:flex;align-items:center;justify-content:center;
+  box-shadow:inset -8px 0 16px rgba(0,0,0,.28),inset 8px 0 12px rgba(255,255,255,.05);transition:border-color .2s,box-shadow .2s}
+.fill{position:absolute;left:0;right:0;bottom:0;height:58%;opacity:.42;transition:height .3s,opacity .3s;
+  background-image:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,0))}
+.fill::before{content:"";position:absolute;left:-25%;right:-25%;top:-9px;height:18px;border-radius:50%;background:inherit;opacity:.85}
+.num{position:relative;font-family:var(--display);font-size:clamp(26px,7.5vw,36px);
+  font-variant-numeric:tabular-nums;color:#FFF6E2;text-shadow:0 2px 8px rgba(0,0,0,.55)}
+.bottle .kbd{position:absolute;top:26px;left:8px;font-size:10px;color:rgba(239,227,200,.4)}
+@media(hover:hover){.bottle:hover .glass{border-color:rgba(255,192,97,.55);box-shadow:inset -8px 0 16px rgba(0,0,0,.28),0 0 22px rgba(255,192,97,.22)}}
+.bottle.right .glass{border-color:#6FE3B8;box-shadow:0 0 30px rgba(111,227,184,.5)}
+.bottle.right .fill{height:100%;opacity:.8}
+.bottle.wrong{animation:shake .34s}
+.bottle.wrong .glass{border-color:rgba(255,127,168,.7)}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}45%{transform:translateX(6px)}70%{transform:translateX(-3px)}}
+.rack.locked .bottle{pointer-events:none}
+
+.drops{display:flex;justify-content:center;gap:7px;padding-top:2px}
+.drops span{width:9px;height:9px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:rgba(239,227,200,.16);transition:.28s}
+.drops span.on{background:#6FE3B8;box-shadow:0 0 10px rgba(111,227,184,.75)}
+.meta{display:flex;justify-content:center;gap:18px;font-size:11.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--parchment-dim)}
+.meta b{color:var(--parchment);font-weight:600}
+
+.shelf{display:none;flex-direction:column;gap:6px;padding-bottom:8px}
+.shelf.on{display:flex}
+.play.off{display:none}
+.rowblock{margin-bottom:20px}
+.rowtop{display:flex;align-items:center;gap:11px;margin-bottom:8px}
+.rowtop svg{width:46px;height:46px;flex:none}
+.rowtop .who{flex:1;min-width:0}
+.rowtop h3{margin:0;font-family:var(--display);font-size:18px;font-weight:500;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.rowtop h3 em{font-style:normal;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--parchment-dim);font-family:var(--ui)}
+.petline{font-size:11.5px;color:var(--parchment-dim);margin-top:3px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.petline u{text-decoration:none;border-bottom:1px dotted rgba(239,227,200,.35);cursor:pointer}
+.xp{flex:1;max-width:120px;height:4px;border-radius:2px;background:rgba(239,227,200,.14);overflow:hidden}
+.xp i{display:block;height:100%;border-radius:2px}
+.plate{font-family:var(--display);font-size:12.5px;color:var(--ink);
+  background:linear-gradient(180deg,#E9D9AF,#CBB683);border-radius:3px;padding:2px 9px;box-shadow:0 2px 7px rgba(0,0,0,.45)}
+.jars{display:grid;grid-template-columns:repeat(10,1fr);gap:5px}
+.plank{height:8px;border-radius:2px;margin-top:5px;background:linear-gradient(180deg,var(--wood-lit),var(--wood));box-shadow:0 5px 12px rgba(0,0,0,.5)}
+.jar{position:relative;height:50px;border-radius:4px 4px 6px 6px;background:rgba(239,227,200,.07);
+  border:1px solid rgba(239,227,200,.16);overflow:hidden;display:flex;align-items:flex-end;justify-content:center}
+.jar i{position:absolute;left:0;right:0;bottom:0;height:8%;opacity:.3;transition:height .4s}
+.jar.full{border-color:rgba(255,255,255,.35)}
+.jar.full i{opacity:.85}
+.jar b{position:relative;font-size:9.5px;font-weight:600;color:rgba(255,246,226,.9);padding-bottom:3px;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+.legend{display:flex;gap:16px;font-size:11.5px;color:var(--parchment-dim);flex-wrap:wrap}
+.legend span{display:flex;align-items:center;gap:6px}
+.dot{width:9px;height:9px;border-radius:50%;background:rgba(239,227,200,.2)}
+.dot.l{background:rgba(255,192,97,.55)}
+.dot.m{background:#6FE3B8;box-shadow:0 0 8px rgba(111,227,184,.7)}
+.empty{font-family:var(--display);font-size:15px;color:var(--parchment-dim);line-height:1.5;margin:6px 0 0}
+.danger{align-self:flex-start;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;margin-top:8px;
+  color:rgba(255,127,168,.65);border-bottom:1px solid rgba(255,127,168,.3);padding-bottom:2px}
+.backup{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 6px}
+
+.veil{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:24px;
+  background:rgba(20,12,24,.88);backdrop-filter:blur(7px);z-index:20}
+.veil.on{display:flex}
+.card{max-width:360px;width:100%;text-align:center;display:flex;flex-direction:column;gap:14px;align-items:center}
+.card .flask{width:74px;height:96px;border-radius:10px 10px 34px 34px;position:relative;overflow:hidden;
+  border:1px solid rgba(239,227,200,.3);background:rgba(239,227,200,.06)}
+.card .flask i{position:absolute;left:0;right:0;bottom:0;height:74%;opacity:.85}
+.card h2{font-family:var(--display);font-size:26px;margin:0;font-weight:500;line-height:1.25}
+.card p{margin:0;font-size:13.5px;color:var(--parchment-dim);line-height:1.55}
+.card svg.big{width:120px;height:120px;animation:hatch .6s ease-out}
+@keyframes hatch{0%{transform:scale(.3) rotate(-12deg);opacity:0}60%{transform:scale(1.12) rotate(4deg)}100%{transform:scale(1) rotate(0);opacity:1}}
+.go{padding:13px 26px;border-radius:999px;background:var(--amber);color:var(--ink);font-weight:650;font-size:14.5px;box-shadow:0 8px 24px rgba(255,192,97,.3)}
+.ghost{font-size:12.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--parchment-dim)}
+.namein{width:100%;padding:12px 14px;border-radius:8px;text-align:center;font-family:var(--display);font-size:19px;
+  background:rgba(239,227,200,.08);border:1px solid rgba(239,227,200,.28);color:var(--parchment)}
+.namein::placeholder{color:rgba(239,227,200,.35)}
+
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,14px);z-index:25;
+  display:flex;align-items:center;gap:10px;padding:10px 16px 10px 10px;border-radius:999px;
+  background:rgba(43,27,49,.96);border:1px solid rgba(255,192,97,.35);box-shadow:0 12px 30px rgba(0,0,0,.5);
+  opacity:0;transition:.28s;pointer-events:none;max-width:92vw}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.toast svg{width:36px;height:36px;flex:none}
+.toast span{font-family:var(--display);font-size:15px;line-height:1.3}
+.peek{align-self:center;margin-top:2px;padding:8px 16px;border-radius:999px;border:1px solid rgba(255,192,97,.4);
+  color:var(--amber);background:rgba(255,192,97,.06);font-size:13px;transition:.18s}
+.peek::before{content:"🔢 "}
+@media(hover:hover){.peek:hover{background:rgba(255,192,97,.16)}}
+.ghost2{padding:11px 22px;border-radius:999px;border:1px solid rgba(239,227,200,.28);color:var(--parchment);font-weight:600;font-size:13.5px}
+
+.chartcard{max-width:560px}
+.charthead{font-family:var(--display);font-size:21px;color:var(--parchment);line-height:1.2}
+.charthead b{color:var(--amber)}
+.grid{display:grid;grid-template-columns:repeat(11,1fr);gap:3px;width:100%}
+.cell{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;border-radius:5px;
+  font-size:clamp(8px,2.3vw,13px);font-variant-numeric:tabular-nums;background:rgba(239,227,200,.045);
+  color:rgba(239,227,200,.55);transition:background .25s,color .25s,transform .25s,box-shadow .25s}
+.cell.hdr{background:transparent;color:var(--parchment-dim);font-weight:600}
+.cell.dim{opacity:.1}
+.cell.band{background:rgba(255,192,97,.1);color:var(--parchment)}
+.cell.step{background:rgba(255,192,97,.32);color:#FFF6E2;box-shadow:0 0 10px rgba(255,192,97,.4)}
+.cell.answer{background:var(--amber);color:var(--ink);font-weight:700;transform:scale(1.15);box-shadow:0 0 16px rgba(255,192,97,.75)}
+.chartsay{min-height:22px;font-size:15px;color:var(--amber);font-family:var(--display)}
+
+.storycard{max-width:420px}
+.storycard #storyText{font-family:var(--display);font-size:18.5px;line-height:1.55;color:var(--parchment)}
+.storycard #storyPet svg{filter:drop-shadow(0 0 10px rgba(255,192,97,.35))}
+.bookcard{max-width:460px;max-height:82vh;overflow:auto}
+#bookList{display:flex;flex-direction:column;gap:10px;width:100%;text-align:left;margin:2px 0}
+.bookitem{border:1px solid rgba(239,227,200,.16);border-radius:10px;padding:10px 12px;font-size:14px;line-height:1.45;color:var(--parchment-dim);background:rgba(239,227,200,.03)}
+.bookitem b{color:var(--amber);font-family:var(--display);font-weight:500;display:block;margin-bottom:3px;font-size:13px}
+.bookempty{color:var(--parchment-dim);font-size:14.5px;line-height:1.5}
+.startbrew{align-self:center;margin:2px 0 16px;padding:14px 34px;font-size:16px}
+.iknow{display:inline-block;margin-top:5px;font-size:11.5px;color:var(--amber);border:1px solid rgba(255,192,97,.4);border-radius:999px;padding:4px 11px;background:rgba(255,192,97,.06)}
+
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="mark">Fizzwick's Potion Lab<small id="brewCount">Potion 1</small></div>
+    <button class="chip" id="modeBtn">No timer</button>
+    <button class="chip" id="soundBtn" aria-pressed="true">Sound on</button>
+    <button class="chip" id="shelfBtn">My shelf</button>
+  </header>
+
+  <section class="play" id="play">
+    <div class="fuse hide" id="fuseBar" aria-hidden="true"><i id="fuse"></i></div>
+    <div class="stage">
+      <div class="feed" id="feed" aria-hidden="true"></div>
+      <div class="cauldron" id="cauldron" aria-hidden="true">
+        <div class="glow" id="glow"></div><div class="rim"></div><div class="pot"></div><div class="brew" id="brew"></div>
+        <span class="bubble" style="left:78px;animation-delay:0s"></span>
+        <span class="bubble" style="left:112px;animation-delay:1.1s"></span>
+        <span class="bubble" style="left:140px;animation-delay:2.2s"></span>
+      </div>
+      <div class="tag" id="tag"></div>
+      <div class="q" id="question" aria-live="polite"></div>
+      <div class="say" id="say">Take as long as you like. Nothing is timing you.</div>
+    </div>
+    <div class="rack" id="rack"></div>
+    <button class="peek" id="chartBtn">Peek at the chart</button>
+    <div class="drops" id="drops" aria-hidden="true"></div>
+    <div class="meta">
+      <div>Jars <b id="mastered">0</b>/100</div>
+      <div>Pets <b id="petCount">0</b>/10</div>
+    </div>
+  </section>
+
+  <section class="shelf" id="shelf">
+    <button class="go startbrew" id="brewBtn">▶ Start brewing</button>
+    <div id="shelves"></div>
+    <div class="legend">
+      <span><i class="dot"></i> Not brewed yet</span>
+      <span><i class="dot l"></i> Getting there</span>
+      <span><i class="dot m"></i> <b id="legGlow" style="font-weight:400"></b></span>
+    </div>
+    <p class="empty" id="shelfNote"></p>
+    <div class="backup">
+      <button class="chip" id="storybookBtn">📖 My storybook</button>
+      <button class="chip" id="exportBtn">Back up to Files</button>
+      <button class="chip" id="importBtn">Restore from Files</button>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
+    </div>
+    <button class="danger" id="resetBtn">Empty every jar</button>
+  </section>
+</div>
+
+<div class="veil" id="done">
+  <div class="card">
+    <div class="flask"><i id="doneFill"></i></div>
+    <h2 id="doneName"></h2>
+    <p id="doneLine"></p>
+    <button class="go" id="storyBtn">✨ Read the lab story</button>
+    <button class="ghost2" id="againBtn">Brew another</button>
+    <button class="ghost" id="peekBtn">See my shelf</button>
+  </div>
+</div>
+
+<div class="veil" id="namer">
+  <div class="card">
+    <div id="namePet"></div>
+    <h2 id="nameTitle"></h2>
+    <p id="nameLine"></p>
+    <input class="namein" id="nameIn" maxlength="20" placeholder="Give it a name" autocomplete="off">
+    <button class="go" id="nameBtn">That's its name</button>
+  </div>
+</div>
+
+<div class="veil" id="chart">
+  <div class="card chartcard">
+    <div class="charthead" id="chartHead"></div>
+    <div class="grid" id="grid"></div>
+    <p class="chartsay" id="chartSay"></p>
+    <button class="go" id="chartClose">Back to my potion</button>
+  </div>
+</div>
+
+<div class="veil" id="story">
+  <div class="card storycard">
+    <div id="storyPet"></div>
+    <h2 id="storyTitle">A little lab tale</h2>
+    <p id="storyText"></p>
+    <button class="go" id="storyClose">Back to brewing</button>
+  </div>
+</div>
+
+<div class="veil" id="storybook">
+  <div class="card bookcard">
+    <h2>📖 My Storybook</h2>
+    <div id="bookList"></div>
+    <button class="go" id="bookClose">Close</button>
+  </div>
+</div>
+
+<div class="veil" id="migrate">
+  <div class="card">
+    <div id="migratePet"></div>
+    <h2>Welcome back!</h2>
+    <p id="migrateLine">We found your animals and stories from the old lab. Want to bring them into the new one?</p>
+    <button class="go" id="migrateYes">Bring my progress in</button>
+    <button class="ghost2" id="migrateNo">Start fresh instead</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" aria-live="polite"></div>
+
+<script>
+(function(){
+"use strict";
+
+var KEY='potionlab.v1', PRIOR=[], LEGACY=['fizzwick.v7','fizzwick.v6','fizzwick.v5','fizzwick.v4'];
+var ROUND=5, FAST=3000, BMAX=10, ROWS=[1,2,3,4,5,6,7,8,9,10], TOTAL=100;
+var REPS=3;          /* just-starting tier: 3 right (not in a row) lights a jar, no clock, no penalties */
+var HUES={1:'#6FE3B8',2:'#FFC061',3:'#FF7FA8',4:'#B99BFF',5:'#6FC9E8',6:'#FF8E72',7:'#C7E36F',8:'#E58BE0',9:'#7EA8FF',10:'#9D8DF1'};
+var SUB={1:'one of everything',2:'doubles',3:'triples',4:'double the doubles',5:'counting by fives',
+         6:'double the threes',7:'the tricky ones',8:'double the fours',9:'counting by nines',10:'counting by tens'};
+var SPECIES={1:'Dustwing Moth',2:'Pipistrelle Bat',3:'Bogwart Toad',4:'Emberling Dragon',
+             5:'Cloudray',6:'Spiralshell Snail',7:'Tawny Owl',8:'Inkfoot Octopus',
+             9:'Rustpaw Fox',10:'Prickle Hedgehog',11:'Snapclaw Crab',12:'Curlfin Seahorse',
+             13:'Lantern Firefly',14:'Twinkle Starfish'};
+/* each table gets a random creature drawn from this pool (fixed once per save) */
+var POOL=[1,2,3,4,5,6,7,8,9,10,11,12,13,14];
+
+/* ===== STORY-DATA-START ===== warm micro-stories; {pet}/{pet2} become her hatchlings' names */
+var STORIES=[
+"The big copper cauldron hummed a tune all night, so Fizzwick hummed along and forgot what he was stirring. The potion came out lavender and smelled like cookies, which everyone agreed was an improvement.",
+"A small gray moth moved into Fizzwick's hat. He didn't mind one bit. He said it made his thoughts feel fluttery in a nice way.",
+"Fizzwick invented a potion for tidying up, but it folded every sock in the lab into tiny hats. The shelves have never looked fancier.",
+"On rainy nights, the lab windows play soft drum songs. Fizzwick makes cocoa and taps his spoon along, almost on the beat.",
+"One jar on the top shelf only glows when somebody laughs. Every morning Fizzwick tells it his silliest joke so it never feels dim.",
+"The broom swept itself into a cozy corner and fell asleep standing up. Fizzwick tiptoed around it all day, because even brooms need naps.",
+"Somebody left the moonlight on again. Fizzwick decided not to turn it off, since the whole lab looked like it was made of silver.",
+"Fizzwick sneezed while stirring, and the potion turned into butterflies. They spent the whole evening landing on his nose, one polite butterfly at a time.",
+"A tiny cloud lives over the sink now. It only rains when the dishes need washing, which Fizzwick calls very good manners.",
+"The lab stairs creak in a friendly way. Fizzwick says they're just saying hello in their wooden voices.",
+"Deep in the pantry, a jar of star-dust sneezed. Now everything on that shelf sparkles a little, even the pickles.",
+"Fizzwick wrote himself a note that said Remember The Thing. He can't remember what the thing was, but the note glows warmly, so it must have been something nice.",
+"Wednesday's potion smelled exactly like fresh bread. Fizzwick sat right down on the floor and breathed it in until dinnertime.",
+"All the candles flicker in time with Fizzwick's humming. When he hums faster, they wiggle like tiny dancers.",
+"A bubble floated out of the cauldron and simply refused to pop. Now it follows Fizzwick everywhere, and he introduces it as his round friend.",
+"As a joke, Fizzwick planted a teaspoon in a flowerpot. By morning it had sprouted three baby spoons, perfect for stirring very small cups of tea.",
+"The rug by the fire started purring after a cozy potion spilled on it. Fizzwick lies on it every evening and calls it his best mistake ever.",
+"Every book in the lab has a favorite bookmark. The grumpy old spell book likes the ribbon one best, and Fizzwick always remembers.",
+"Fizzwick baked star-shaped cookies for the oven's birthday. The oven glowed extra warm all week, which he took as a thank you.",
+"A hiccup got into the potion shelf somehow. All night the bottles went boop, boop, boop, and Fizzwick giggled himself to sleep.",
+"The teapot fell in love with the sugar bowl. Fizzwick keeps them side by side on the shelf, because that's just good sense.",
+"High in the rafters lives a spider who knits instead of spinning webs. She made Fizzwick a scarf so small he wears it on his thumb.",
+"One sleepy afternoon, Fizzwick tried to catch a yawn in a bottle. He yawned, the bottle yawned, and then the whole lab took a lovely nap.",
+"There's one floorboard that boings like a drum. Fizzwick hops on it every morning to start the day with a good bounce.",
+"The mirror in the hall always shows you with slightly better hair. Fizzwick says that's just the mirror being encouraging.",
+"A firefly got hired as the lab's night light. Her pay is one crumb of honey cake, and she says it's the best job in the world.",
+"Fizzwick's slippers wandered off in the night. He found them by the fire, warming themselves, and honestly he couldn't blame them.",
+"The soup potion learned to stir itself, but only counterclockwise. Fizzwick just turns the whole pot around when nobody's looking.",
+"On the first snow of the year, the windows draw their own frost pictures. This year they drew a hat, a duck, and something Fizzwick calls a wumple.",
+"Once a month the moon peeks in the skylight to check on things. Fizzwick always waves, and the moon always looks a little brighter after.",
+"The doorbell rings a different tiny song for every visitor. When the mail owl comes it plays a drumroll, which the owl clearly enjoys.",
+"Fizzwick keeps a jar labeled Extra Quiet for loud days. When he opens it, everything goes soft and hushed, like snow falling inside the room.",
+"A ladybug landed on Fizzwick's spoon at exactly stirring time. He let her ride around the pot eleven times, then thanked her for her help.",
+"The lab's clock doesn't tick. It tocks twice instead, and Fizzwick says a clock that skips is a clock that's dancing.",
+"Every kettle in the lab whistles in harmony now. Fizzwick has no idea how that happened, but tea time sounds like a tiny concert.",
+"Mittens and oven mitts got mixed up again this morning. Fizzwick's toast came out with thumb-shaped warm spots, and he laughed into his tea about it.",
+"Warm rain fell all afternoon, so Fizzwick set out cups on the windowsill. By evening he had a fine collection of sky tea.",
+"The bubbles in the cauldron came out square on Tuesday. Fizzwick stacked them like blocks and built a small wobbly castle.",
+"When the fire gets sleepy, it snores in little orange puffs. Fizzwick tucks another log in gently, like a blanket.",
+"There's a drawer in the lab that only opens if you say please. Fizzwick thinks that's fair, and he always says thank you too.",
+"There was a button in Fizzwick's soup and a soup stain on his button. He decided the day was perfectly even and had a cookie about it.",
+"Some potions dream. The blue one on the middle shelf hums in its sleep, and Fizzwick is quite sure it dreams about the sea.",
+"The welcome mat learned to say welcome out loud. It only knows the one word, but it says it with all its heart.",
+"A pot of moon flowers blooms only at bedtime. Fizzwick says goodnight to each blossom, and each one nods before folding up.",
+"Fizzwick counted his jars twice and got two different numbers. He decided one jar must be shy, and left out a saucer of star-dust just in case.",
+"The chimney smoke comes out in curly shapes. On good soup days it makes hearts, and today was a very good soup day.",
+"A song got stuck in the cauldron for a week. Everything cooked in it came out humming, even the porridge.",
+"Fizzwick's favorite mug has a chip shaped like a crescent moon. He says it isn't broken, it's just wearing its night sky.",
+"The pantry mice pay rent in tiny drawings. Fizzwick frames his favorites and hangs them above the crumb shelf.",
+"One night the lanterns floated up to the ceiling to see the view. Fizzwick let them stay, and now the lab has its own indoor stars.",
+"Fizzwick taught the coat rack to catch. Now it snags his scarf midair every evening and looks extremely proud of itself.",
+"The garden gnome by the door blushes when you say good morning. Fizzwick says it every day, twice, just to see it happen.",
+"A potion meant for shiny hair made Fizzwick's beard curl into a spiral. He liked it so much he tied a bow on the end.",
+"Thunder rolled by far away, and the lab answered with a polite little rumble of its own. Fizzwick patted the wall and said, nicely done, house.",
+"The honey jar hums whenever bees fly past the window. Fizzwick opens the curtains wide so they can wave at each other.",
+"Glow-in-the-dark tea happened entirely by accident. Now bedtime sips look like drinking a little cup of moonlight, and Fizzwick refuses to fix it.",
+"Every spring the lab grows one new windowsill flower that nobody planted. This year it's polka-dotted and smells like pancakes.",
+"The umbrella stand collects more than umbrellas. So far it holds three wands, a flute, and one very tall breadstick Fizzwick is saving for soup day.",
+"When Fizzwick can't sleep, he counts the bubbles rising in the night cauldron. He has never once made it past twelve.",
+"A rainbow got tangled in the curtains after a storm. Fizzwick untangled it gently, and it left a stripe of pink on the wall as a thank-you gift.",
+"The lab's front door sticks a little in winter. Fizzwick says it's just the house giving everyone one extra second of cozy before they go out.",
+"Fizzwick's shopping list wrote a poem on the back of itself. It rhymed carrots with parrots, and now he sort of wants a parrot.",
+"Two snowflakes landed on the windowsill and didn't melt. Fizzwick keeps them in a tiny cold jar and visits them like old friends.",
+"The stew potion bubbled the word yum in big round letters. Fizzwick took that as a review and bowed to the pot.",
+"At the bottom of the cocoa there's always one extra-chocolatey sip. Fizzwick believes the mug saves it on purpose, as a goodnight present.",
+"{pet} discovered that cauldron steam makes excellent tiny clouds. It spent all morning arranging them into a fluffy little sky above the soup.",
+"Fizzwick lost his spectacles for the third time today. {pet} found them, wore them proudly for one whole minute, then traded them back for a raisin.",
+"A sunbeam moved slowly across the lab floor, and {pet} scooted along with it inch by inch. By afternoon they had both reached the comfy chair.",
+"{pet} tried to hum along with the kettle. The kettle won, but only barely, and Fizzwick clapped for both of them.",
+"Somebody nibbled a perfect circle out of Fizzwick's biscuit. {pet} looked extremely innocent, which is exactly how Fizzwick knew, so he shared the rest.",
+"In the button box, {pet} sorted every button by shininess. Fizzwick said it was the finest sorting he had ever seen, and he meant it.",
+"The bubbles from tonight's potion smelled like strawberries. {pet} popped six with its nose and then sneezed one tiny pink sneeze.",
+"The warmest scarf in the lab is now a nest, because {pet} decided so. Fizzwick wore his second-warmest scarf all winter and never said a word.",
+"Rain pattered softly, and {pet} pressed its nose to the window and fogged up a little circle. Fizzwick drew a smiley face in it, and they both agreed it was art.",
+"{pet} learned to balance a blueberry on its head. Fizzwick balanced a teacup on his, and they walked one whole lap around the lab like champions.",
+"The moonlight potion needed exactly one hundred stirs. {pet} counted along by tapping its tail, and only lost count twice, which Fizzwick called excellent work.",
+"{pet} hid in the sock basket for hide-and-seek. Fizzwick pretended not to notice the wiggling socks for a full five minutes, which is why he's the best at this game.",
+"A dandelion seed drifted in the window and landed right on {pet}'s nose. It made a wish before blowing the seed onward, but it won't say what the wish was.",
+"{pet} decided the big wooden spoon was its friend. Now the spoon gets a goodnight pat every evening, and honestly it does seem shinier.",
+"Fizzwick taught {pet} how to blow one perfect bubble. {pet} taught Fizzwick how to nap in a patch of sun, so they called it even.",
+"One little sip of glow-berry juice, and now {pet}'s hiccups sparkle. Fizzwick says it's the prettiest case of hiccups he has ever treated with honey.",
+"The rug got wrinkled up into a mountain, so {pet} climbed it. At the top it squeaked in triumph, and Fizzwick raised his teacup in salute.",
+"{pet} fell asleep inside Fizzwick's upside-down hat. Fizzwick went hatless all afternoon and told everyone it was on purpose.",
+"Snail mail arrived today, meaning a real snail with a tiny letter. {pet} escorted it across the whole lab floor, which took until supper and was worth every minute.",
+"Every time {pet} yawns now, a little laugh comes out. That's what one sip of giggle potion will do, and Fizzwick can't stop smiling about it.",
+"The feather duster and {pet} had a staring contest. The duster never blinked, but {pet} declared victory anyway and took a winner's nap.",
+"{pet} stacked Fizzwick's spare corks into a tiny tower. When it wobbled over, they both cheered, because knocking it down was the best part all along.",
+"On the coldest night, {pet} curled up next to the warm cauldron like a small round loaf. Fizzwick draped a hanky over it as a blanket and whispered goodnight.",
+"Under the bench, {pet} keeps a secret collection: three acorns, one marble, and a very good stick. Fizzwick pretends he hasn't noticed, and adds a shiny pebble when nobody's looking.",
+"A moth landed on {pet}'s head and stayed there like a bow. {pet} walked extra carefully all evening so it wouldn't fall off.",
+"{pet} sneezed near the flour and turned into a tiny white ghost for one minute. Fizzwick laughed so hard he had to sit down, then dusted it clean with the soft brush.",
+"The bath bubbles were extra fluffy tonight, so {pet} wore a bubble beard. Fizzwick made himself one too, and they nodded at each other like two wise old wizards.",
+"{pet} watched Fizzwick stir the potion, then tried stirring the air with its tail. The potion turned out perfect, so Fizzwick says the air-stirring definitely helped.",
+"Bedtime kept getting closer, and {pet} kept scooting its cushion nearer the fireplace. By the end of the last story it was toast-warm and completely asleep.",
+"{pet} caught a falling autumn leaf before it touched the ground. Fizzwick says that means good luck, so they split a butter cookie to celebrate.",
+"{pet} and {pet2} shared one long noodle from the soup pot. When they reached the middle they bonked noses, and Fizzwick declared it the sweetest supper ever.",
+"It was {pet2}'s turn to pick the bedtime spot, so everyone slept in the window seat. {pet} snored first, then {pet2}, then Fizzwick, in one small cozy pile.",
+"{pet} hid behind the flour sack, and {pet2} looked everywhere except there. Ten minutes later they were both asleep behind the flour sack, so nobody won, or maybe everybody did.",
+"One sunbeam, two sleepy hatchlings. {pet} and {pet2} split it fair and square, half a beam each, tails touching in the middle.",
+"{pet} learned to whistle one note, and {pet2} learned a different note. Together they sound exactly like the doorbell, and Fizzwick keeps answering the door to nobody, laughing every time.",
+"The pillow fort took all afternoon to build. {pet} guarded the front door, {pet2} guarded the back, and Fizzwick delivered snacks to both guards equally.",
+"{pet} found a ribbon, and {pet2} found the other end of it. They paraded around the cauldron like a tiny two-creature festival until bedtime.",
+"On pancake morning, {pet} liked the crispy edges and {pet2} liked the soft middles. Fizzwick says that's exactly why they make a perfect team.",
+"{pet2} sneezed a little spark, and {pet} caught it in a jar. Now they have a night light they made together, and they are very proud of it.",
+"The slipper boat set sail across the rug sea. {pet} sat in the toe, {pet2} sat in the heel, and they sailed bravely until suppertime.",
+"{pet} counted the stars out loud, and {pet2} kept saying bigger numbers that aren't real, like eleventy-twelve. Fizzwick wrote eleventy-twelve on the chalkboard because he liked it too much to correct it.",
+"When the music box played, {pet} spun left and {pet2} spun right. They got dizzy at exactly the same time and flopped into the same beanbag.",
+"{pet} gave {pet2} half of its raspberry, and got back half of the half. This went on for quite a while, so Fizzwick quietly brought more raspberries.",
+"A butterfly visited the lab, and {pet} and {pet2} followed it from window to window all afternoon. When it finally fluttered home, they waved goodbye with their tails.",
+"{pet} yawned, which made {pet2} yawn, which made Fizzwick yawn so big his hat tipped over. That's how the whole lab knew it was officially bedtime."
+];
+/* ===== STORY-DATA-END ===== */
+var WELCOME="Welcome to Fizzwick's Potion Lab! Fizzwick has been waiting for a new potion-maker. He lit every candle, dusted off the big copper cauldron, and set out ten little eggs — each one hatches into a friend as you fill its shelf with glowing jars. Every time you finish a potion, come back to your storybook to hear what everyone has been up to. Ready to brew?";
+var TEACH=[1,2,5,10,3,4,6,7,8,9];
+var STAGES=[{at:0,name:'Hatchling',s:.78},{at:20,name:'Fledgling',s:.92},
+            {at:50,name:'Grown',s:1.06},{at:100,name:'Radiant',s:1.18}];
+var ADJ=['Moonfrost','Emberfizz','Thundermint','Glimmerdusk','Sourgrape','Velvet','Tidepool','Cinderplum',
+ 'Frostbloom','Starcurl','Peppergold','Nightpear','Sunspark','Bramble','Hushwillow','Copperkettle',
+ 'Dawnthistle','Wispberry','Ironpetal','Snowlark','Cloudmallow','Foxglove','Saltwind','Amberdrift',
+ 'Quillfern','Duskmelon','Rainglass','Lanternfly','Silverbriar','Honeyfrost'];
+var NOUN=['Elixir','Draught','Tonic','Brew','Philtre','Fizz','Syrup','Cordial',
+ 'Infusion','Essence','Distillate','Remedy','Nectar','Serum'];
+
+var facts={},plates={},pets={},used={},species={},usedStories={},storyLog=[],brewed=0,sound=true,calm=true,storeOk=true;
+var cur=null,drops=0,streak=0,lastKey='',tStart=0,raf=null,locked=true,queue=[],renaming=0,welcomeMode=false;
+
+/* ================= facts ================= */
+function fkey(a,b){return a+'x'+b;}
+function getFact(a,b){var k=fkey(a,b);if(!facts[k])facts[k]={n:0,c:0,s:0,ema:0,e:0};return facts[k];}
+function earned(f){return !!f.e;}
+/* two ways to light a jar — either one counts, and it never goes back out */
+function checkEarn(f){
+  if(f.e)return 1;
+  if(calm){ if(f.s>=REPS)f.e=1; }
+  else if(f.s>=3&&f.ema>0&&f.ema<=3500)f.e=1;
+  return f.e;
+}
+function slipping(f){return earned(f)&&(f.s===0||(!calm&&f.ema>4200));}
+function rowDone(a){for(var b=1;b<=BMAX;b++)if(!earned(getFact(a,b)))return false;return true;}
+function countGlow(){var n=0;ROWS.forEach(function(a){for(var b=1;b<=BMAX;b++)if(earned(getFact(a,b)))n++;});return n;}
+function countPets(){var n=0;for(var k in pets)if(pets[k]&&pets[k].name)n++;return n;}
+
+/* ================= pets ================= */
+function getPet(a){return pets[a];}
+function stageOf(xp){var s=STAGES[0];for(var i=0;i<STAGES.length;i++)if(xp>=STAGES[i].at)s=STAGES[i];return s;}
+function nextAt(xp){for(var i=0;i<STAGES.length;i++)if(xp<STAGES[i].at)return STAGES[i].at;return null;}
+function petSVG(design,px,glow,hue){
+  var c=hue||HUES[design]||'#6FE3B8',d='#241826',g='';
+  if(design===1) g='<ellipse cx="17" cy="26" rx="11" ry="9" fill="'+c+'" opacity=".5"/>'+
+    '<ellipse cx="31" cy="26" rx="11" ry="9" fill="'+c+'" opacity=".5"/>'+
+    '<ellipse cx="19" cy="34" rx="7" ry="6" fill="'+c+'" opacity=".38"/>'+
+    '<ellipse cx="29" cy="34" rx="7" ry="6" fill="'+c+'" opacity=".38"/>'+
+    '<ellipse cx="24" cy="28" rx="4.6" ry="10" fill="'+c+'"/>'+
+    '<path d="M22 19 Q19 12 15 10" stroke="'+c+'" stroke-width="1.6" fill="none" stroke-linecap="round"/>'+
+    '<path d="M26 19 Q29 12 33 10" stroke="'+c+'" stroke-width="1.6" fill="none" stroke-linecap="round"/>'+
+    '<circle cx="22" cy="23" r="1.5" fill="'+d+'"/><circle cx="26" cy="23" r="1.5" fill="'+d+'"/>';
+  if(design===2) g='<path d="M24 21 Q14 12 6 18 Q10 21 9 27 Q16 24 20 30 Z" fill="'+c+'" opacity=".8"/>'+
+    '<path d="M24 21 Q34 12 42 18 Q38 21 39 27 Q32 24 28 30 Z" fill="'+c+'" opacity=".8"/>'+
+    '<ellipse cx="24" cy="27" rx="7" ry="8.5" fill="'+c+'"/>'+
+    '<path d="M19 21 L18 13 L23 19 Z" fill="'+c+'"/><path d="M29 21 L30 13 L25 19 Z" fill="'+c+'"/>'+
+    '<circle cx="21.5" cy="26" r="1.6" fill="'+d+'"/><circle cx="26.5" cy="26" r="1.6" fill="'+d+'"/>';
+  if(design===3) g='<ellipse cx="12" cy="40" rx="5.5" ry="3" fill="'+c+'" opacity=".75"/>'+
+    '<ellipse cx="36" cy="40" rx="5.5" ry="3" fill="'+c+'" opacity=".75"/>'+
+    '<ellipse cx="24" cy="31" rx="15" ry="11" fill="'+c+'"/>'+
+    '<circle cx="17" cy="19" r="5.5" fill="'+c+'"/><circle cx="31" cy="19" r="5.5" fill="'+c+'"/>'+
+    '<circle cx="17" cy="19" r="2.2" fill="'+d+'"/><circle cx="31" cy="19" r="2.2" fill="'+d+'"/>'+
+    '<path d="M18 33 Q24 37 30 33" stroke="'+d+'" stroke-width="1.4" fill="none" stroke-linecap="round" opacity=".55"/>';
+  if(design===4) g='<path d="M20 23 Q10 10 6 21 Q12 23 12 29 Q17 27 21 29 Z" fill="'+c+'" opacity=".6"/>'+
+    '<path d="M28 23 Q38 10 42 21 Q36 23 36 29 Q31 27 27 29 Z" fill="'+c+'" opacity=".6"/>'+
+    '<path d="M24 38 Q31 44 39 40" stroke="'+c+'" stroke-width="3" fill="none" stroke-linecap="round"/>'+
+    '<ellipse cx="24" cy="29" rx="9" ry="10" fill="'+c+'"/>'+
+    '<path d="M19 22 L20 15 L24 21 Z" fill="'+c+'"/><path d="M29 22 L28 15 L24 21 Z" fill="'+c+'"/>'+
+    '<circle cx="21" cy="28" r="1.7" fill="'+d+'"/><circle cx="27" cy="28" r="1.7" fill="'+d+'"/>';
+  if(design===5) g='<path d="M24 12 Q43 26 24 35 Q5 26 24 12 Z" fill="'+c+'"/>'+
+    '<path d="M24 35 Q26 43 21 45" stroke="'+c+'" stroke-width="2" fill="none" stroke-linecap="round"/>'+
+    '<circle cx="20" cy="23" r="1.7" fill="'+d+'"/><circle cx="28" cy="23" r="1.7" fill="'+d+'"/>';
+  if(design===6) g='<path d="M11 39 Q8 30 17 29 L29 29 L29 39 Z" fill="'+c+'" opacity=".7"/>'+
+    '<path d="M13 30 Q10 22 13 18" stroke="'+c+'" stroke-width="1.6" fill="none" stroke-linecap="round"/>'+
+    '<circle cx="13" cy="17" r="1.8" fill="'+c+'"/>'+
+    '<circle cx="29" cy="25" r="12" fill="'+c+'"/>'+
+    '<circle cx="29" cy="25" r="7.5" fill="none" stroke="'+d+'" stroke-width="1.3" opacity=".35"/>'+
+    '<circle cx="30" cy="26" r="3.4" fill="none" stroke="'+d+'" stroke-width="1.3" opacity=".35"/>'+
+    '<circle cx="15" cy="33" r="1.5" fill="'+d+'"/>';
+  if(design===7) g='<ellipse cx="24" cy="28" rx="13" ry="14" fill="'+c+'"/>'+
+    '<path d="M13 18 L15 9 L21 15 Z" fill="'+c+'"/><path d="M35 18 L33 9 L27 15 Z" fill="'+c+'"/>'+
+    '<circle cx="19" cy="25" r="5" fill="#FFF6E2" opacity=".92"/><circle cx="29" cy="25" r="5" fill="#FFF6E2" opacity=".92"/>'+
+    '<circle cx="19" cy="25" r="2.3" fill="'+d+'"/><circle cx="29" cy="25" r="2.3" fill="'+d+'"/>'+
+    '<path d="M24 29 L21 32.5 L27 32.5 Z" fill="'+d+'" opacity=".7"/>';
+  if(design===8) g='<path d="M14 33 Q11 40 15 44" stroke="'+c+'" stroke-width="3" fill="none" stroke-linecap="round"/>'+
+    '<path d="M20 33 Q18 41 22 45" stroke="'+c+'" stroke-width="3" fill="none" stroke-linecap="round"/>'+
+    '<path d="M28 33 Q30 41 26 45" stroke="'+c+'" stroke-width="3" fill="none" stroke-linecap="round"/>'+
+    '<path d="M34 33 Q37 40 33 44" stroke="'+c+'" stroke-width="3" fill="none" stroke-linecap="round"/>'+
+    '<path d="M11 29 Q11 15 24 15 Q37 15 37 29 L37 33 L11 33 Z" fill="'+c+'"/>'+
+    '<circle cx="20" cy="25" r="2" fill="'+d+'"/><circle cx="28" cy="25" r="2" fill="'+d+'"/>';
+  if(design===9) g='<path d="M13 15 L15 25 L22 20 Z" fill="'+c+'"/>'+
+    '<path d="M35 15 L33 25 L26 20 Z" fill="'+c+'"/>'+
+    '<ellipse cx="24" cy="28" rx="11" ry="10" fill="'+c+'"/>'+
+    '<path d="M17 30 Q24 41 31 30 Q24 35 17 30 Z" fill="'+d+'" opacity=".18"/>'+
+    '<circle cx="20" cy="27" r="1.8" fill="'+d+'"/><circle cx="28" cy="27" r="1.8" fill="'+d+'"/>'+
+    '<circle cx="24" cy="32" r="1.7" fill="'+d+'"/>';
+  if(design===10) g='<path d="M12 21 L9 13 L16 19 Z" fill="'+c+'"/>'+
+    '<path d="M19 18 L18 10 L24 17 Z" fill="'+c+'"/>'+
+    '<path d="M29 18 L30 10 L24 17 Z" fill="'+c+'"/>'+
+    '<path d="M36 21 L39 13 L32 19 Z" fill="'+c+'"/>'+
+    '<path d="M8 34 Q10 19 24 19 Q38 19 40 34 Q24 40 8 34 Z" fill="'+c+'"/>'+
+    '<path d="M8 33 Q3 31 5 27 Q9 28 12 31 Z" fill="'+c+'"/>'+
+    '<circle cx="6" cy="30" r="1.6" fill="'+d+'"/>'+
+    '<circle cx="13" cy="30" r="1.6" fill="'+d+'"/>';
+  if(design===11) g='<path d="M12 30 Q7 26 8 22" stroke="'+c+'" stroke-width="2.4" fill="none" stroke-linecap="round"/>'+
+    '<circle cx="8" cy="20" r="4" fill="'+c+'"/>'+
+    '<path d="M36 30 Q41 26 40 22" stroke="'+c+'" stroke-width="2.4" fill="none" stroke-linecap="round"/>'+
+    '<circle cx="40" cy="20" r="4" fill="'+c+'"/>'+
+    '<path d="M13 36 L8 39 M15 38 L11 42 M33 38 L37 42 M35 36 L40 39" stroke="'+c+'" stroke-width="2" stroke-linecap="round"/>'+
+    '<ellipse cx="24" cy="32" rx="12" ry="8" fill="'+c+'"/>'+
+    '<line x1="20" y1="25" x2="19" y2="18" stroke="'+c+'" stroke-width="1.6"/>'+
+    '<line x1="28" y1="25" x2="29" y2="18" stroke="'+c+'" stroke-width="1.6"/>'+
+    '<circle cx="19" cy="17" r="2.2" fill="'+c+'"/><circle cx="29" cy="17" r="2.2" fill="'+c+'"/>'+
+    '<circle cx="19" cy="17" r="1" fill="'+d+'"/><circle cx="29" cy="17" r="1" fill="'+d+'"/>'+
+    '<circle cx="21" cy="32" r="1.3" fill="'+d+'"/><circle cx="27" cy="32" r="1.3" fill="'+d+'"/>';
+  if(design===12) g='<path d="M23 13 Q31 13 30 21 Q29 28 23 29 Q17 30 18 36 Q19 42 26 41" stroke="'+c+'" stroke-width="6" fill="none" stroke-linecap="round"/>'+
+    '<path d="M23 13 Q17 12 15 17" stroke="'+c+'" stroke-width="3.2" fill="none" stroke-linecap="round"/>'+
+    '<path d="M31 19 Q36 21 32 26 Q29 23 31 19 Z" fill="'+c+'" opacity=".55"/>'+
+    '<circle cx="24" cy="17" r="1.5" fill="'+d+'"/>';
+  if(design===13) g='<ellipse cx="15" cy="23" rx="8" ry="4.5" fill="'+c+'" opacity=".4" transform="rotate(-18 15 23)"/>'+
+    '<ellipse cx="33" cy="23" rx="8" ry="4.5" fill="'+c+'" opacity=".4" transform="rotate(18 33 23)"/>'+
+    '<path d="M24 12 Q20 8 18 10 M24 12 Q28 8 30 10" stroke="'+c+'" stroke-width="1.4" fill="none" stroke-linecap="round"/>'+
+    '<circle cx="24" cy="16" r="4" fill="'+c+'"/>'+
+    '<ellipse cx="24" cy="28" rx="6" ry="10" fill="'+c+'"/>'+
+    '<circle cx="24" cy="37" r="4.5" fill="#FFF6E2"/>'+
+    '<circle cx="22" cy="15" r="1.1" fill="'+d+'"/><circle cx="26" cy="15" r="1.1" fill="'+d+'"/>';
+  if(design===14) g='<path d="M24 9 L28 21 L41 21 L30 29 L34 42 L24 34 L14 42 L18 29 L7 21 L20 21 Z" fill="'+c+'"/>'+
+    '<circle cx="21" cy="26" r="1.7" fill="'+d+'"/><circle cx="27" cy="26" r="1.7" fill="'+d+'"/>'+
+    '<path d="M21 30 Q24 33 27 30" stroke="'+d+'" stroke-width="1.3" fill="none" stroke-linecap="round"/>';
+  var f=glow?' style="filter:drop-shadow(0 0 7px '+c+')"':'';
+  return '<svg viewBox="0 0 48 48" width="'+px+'" height="'+px+'" aria-hidden="true"'+f+'>'+g+'</svg>';
+}
+/* classic lineup: each table shows its original-era creature
+   1 Dustwing Moth · 2 Pipistrelle Bat · 3 Bogwart Toad · 4 Emberling Dragon
+   5 Cloudray · 6 Spiralshell Snail · 7 Tawny Owl · 8 Inkfoot Octopus
+   9 Rustpaw Fox · 10 Prickle Hedgehog */
+function designFor(a){return a;}
+function ensureSpecies(){}
+function eggSVG(a,px){
+  var c=HUES[a];
+  return '<svg viewBox="0 0 48 48" width="'+px+'" height="'+px+'" aria-hidden="true" style="opacity:.4">'+
+    '<ellipse cx="24" cy="28" rx="12" ry="15" fill="'+c+'" opacity=".35"/>'+
+    '<ellipse cx="24" cy="28" rx="12" ry="15" fill="none" stroke="'+c+'" stroke-width="1.2" opacity=".7"/>'+
+    '<circle cx="20" cy="24" r="1.8" fill="'+c+'" opacity=".6"/><circle cx="28" cy="31" r="2.2" fill="'+c+'" opacity=".6"/>'+
+    '<circle cx="25" cy="19" r="1.4" fill="'+c+'" opacity=".6"/></svg>';
+}
+
+/* ================= potion names, never repeated ================= */
+function potionName(){
+  var free=[],i,j,n;
+  for(i=0;i<ADJ.length;i++)for(j=0;j<NOUN.length;j++){n=ADJ[i]+' '+NOUN[j];if(!used[n])free.push(n);}
+  if(free.length){n=free[Math.floor(Math.random()*free.length)];used[n]=1;return n;}
+  var k=2;
+  while(true){
+    n=ADJ[Math.floor(Math.random()*ADJ.length)]+' '+NOUN[Math.floor(Math.random()*NOUN.length)]+' No. '+k;
+    if(!used[n]){used[n]=1;return n;}
+    k++;
+  }
+}
+
+/* ================= storage (real localStorage, survives close/reopen) ================= */
+function snapshot(){return {v:7,facts:facts,plates:plates,pets:pets,used:used,species:species,usedStories:usedStories,storyLog:storyLog,brewed:brewed,sound:sound,calm:calm};}
+function save(){
+  if(!storeOk)return;
+  try{localStorage.setItem(KEY,JSON.stringify(snapshot()));}catch(e){storeOk=false;}
+}
+function readKey(k){
+  try{var v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch(e){return null;}
+}
+function absorb(d){
+  facts=d.facts||{};plates=d.plates||{};pets=d.pets||{};used=d.used||{};species=d.species||{};brewed=d.brewed||0;
+  usedStories=d.usedStories||{};storyLog=d.storyLog||[];
+  if(typeof d.sound==='boolean')sound=d.sound;
+  if(typeof d.calm==='boolean')calm=d.calm;
+  for(var k in facts){var f=facts[k];if(f.e===undefined)f.e=(f.s>=3&&f.ema>0&&f.ema<=3500)?1:0;}
+}
+function load(){
+  var d=readKey(KEY);
+  if(d){absorb(d);return true;}
+  for(var i=0;i<PRIOR.length;i++){var p=readKey(PRIOR[i]);if(p){absorb(p);return true;}}
+  return false;
+}
+/* the old game (fizzwick.*) lives on the same ahmadia.github.io origin,
+   so its save is readable here — offer to bring it across */
+function legacySave(){
+  for(var i=0;i<LEGACY.length;i++){var p=readKey(LEGACY[i]);if(p&&p.facts)return p;}
+  return null;
+}
+function doMigrate(legacy){
+  absorb(legacy);ensureSpecies();
+  drops=0;streak=0;queue=[];renaming=0;
+  save();                         /* write it under the new key */
+  $('migrate').classList.remove('on');
+  $('soundBtn').textContent=sound?'Sound on':'Sound off';
+  $('soundBtn').setAttribute('aria-pressed',String(sound));
+  updateMode();paintDrops();updateMeta();
+  ROWS.forEach(function(a){if(rowDone(a)&&!(pets[a]&&pets[a].name))queue.push(a);});
+  showShelf(true);
+  toast(designFor(ROWS[0]),'Your animals and stories are back!');
+}
+var pendingLegacy=null;
+function startMigration(legacy){
+  pendingLegacy=legacy;
+  var a=ROWS[0];
+  $('migratePet').innerHTML=petSVG(designFor(a),96,true,HUES[a]).replace('<svg','<svg class="big"');
+  var petN=(legacy.pets?Object.keys(legacy.pets).filter(function(k){return legacy.pets[k]&&legacy.pets[k].name;}).length:0);
+  var storyN=(legacy.storyLog?legacy.storyLog.length:0);
+  $('migrateLine').textContent='We found '+petN+' animal'+(petN===1?'':'s')+' and '+storyN+' stor'+(storyN===1?'y':'ies')+' from the old lab. Want to bring them into the new one?';
+  $('migrate').classList.add('on');
+}
+
+/* ---- backup to / restore from the Files app ---- */
+function exportSave(){
+  try{
+    var blob=new Blob([JSON.stringify(snapshot(),null,2)],{type:'application/json'});
+    var url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download='fizzwick-potion-lab-save.json';
+    document.body.appendChild(a);a.click();
+    setTimeout(function(){URL.revokeObjectURL(url);a.remove();},1500);
+    toast(designFor(1),'Save file sent to Files.');
+  }catch(e){alert('Could not create the backup file.');}
+}
+function importSave(file){
+  if(!file)return;
+  var r=new FileReader();
+  r.onload=function(){
+    var d;try{d=JSON.parse(r.result);}catch(e){alert('That file could not be read.');return;}
+    if(!d||!d.facts){alert('That does not look like a Potion Lab save.');return;}
+    absorb(d);ensureSpecies();
+    drops=0;streak=0;queue=[];renaming=0;save();
+    $('soundBtn').textContent=sound?'Sound on':'Sound off';
+    $('soundBtn').setAttribute('aria-pressed',String(sound));
+    updateMode();paintDrops();updateMeta();
+    if($('shelf').classList.contains('on'))buildShelf();else ask();
+    toast(designFor(1),'Progress restored.');
+  };
+  r.readAsText(file);
+}
+/* just-starting: nothing pre-credited — every jar is hers to light */
+function preload(){}
+
+/* ================= sound ================= */
+var ac=null;
+function beep(fs,dur,vol){
+  if(!sound)return;
+  try{
+    if(!ac)ac=new (window.AudioContext||window.webkitAudioContext)();
+    fs.forEach(function(f,i){
+      var o=ac.createOscillator(),g=ac.createGain(),t=ac.currentTime+i*0.085;
+      o.type='sine';o.frequency.value=f;
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+      o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+dur+0.05);
+    });
+  }catch(e){}
+}
+
+/* ================= selection ================= */
+function inProgress(){var n=0;ROWS.forEach(function(a){for(var b=1;b<=BMAX;b++){var f=getFact(a,b);if(f.n>0&&!earned(f))n++;}});return n;}
+function nextUnseen(){
+  for(var i=0;i<ROWS.length;i++){var a=ROWS[i];
+    for(var j=0;j<TEACH.length;j++){var b=TEACH[j];if(getFact(a,b).n===0)return {a:a,b:b};}}
+  return null;
+}
+function weight(f){
+  if(!earned(f)){
+    var need=calm?REPS:3;
+    var w=3+Math.max(0,need-f.s)*1.2;
+    if(!calm){ if(f.ema>4500)w+=2.2;else if(f.ema>FAST)w+=1; }
+    return w;
+  }
+  return slipping(f)?2:0.5;
+}
+function pick(){
+  var pool=[],total=0;
+  ROWS.forEach(function(a){
+    for(var b=1;b<=BMAX;b++){
+      var f=getFact(a,b);
+      if(f.n===0||fkey(a,b)===lastKey)continue;
+      var w=weight(f);total+=w;pool.push({a:a,b:b,w:w,fresh:false});
+    }
+  });
+  var nu=nextUnseen();
+  if(nu&&(inProgress()<4||!pool.length)){pool.push({a:nu.a,b:nu.b,w:6,fresh:true});total+=6;}
+  if(!pool.length)return {a:1,b:1,fresh:false};
+  var r=Math.random()*total;
+  for(var i=0;i<pool.length;i++){r-=pool[i].w;if(r<=0)return pool[i];}
+  return pool[pool.length-1];
+}
+function limitFor(f){
+  if(f.n===0)return 12000;
+  if(!earned(f))return f.ema?Math.max(7000,Math.min(11000,f.ema*2.4)):10000;
+  return 6500;
+}
+/* three clearly-different wrong answers: neighbours from the same count-by table */
+function distractors(a,b){
+  var p=a*b,cand=[p+a,p-a,p+a*2,p-a*2,p+a*3,p-a*3],out=[],seen={},i,v;
+  seen[p]=1;
+  for(i=0;i<cand.length&&out.length<3;i++){v=cand[i];if(v>0&&!seen[v]){seen[v]=1;out.push(v);}}
+  var g=1;while(out.length<3){v=p+g;if(v>0&&!seen[v]){seen[v]=1;out.push(v);}g++;}
+  return out;
+}
+function shuffle(A){for(var i=A.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=A[i];A[i]=A[j];A[j]=t;}return A;}
+
+/* ================= dom ================= */
+var $=function(i){return document.getElementById(i);};
+var rack=$('rack'),fuse=$('fuse'),fuseBar=$('fuseBar'),say=$('say'),question=$('question'),cauldron=$('cauldron'),tag=$('tag');
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function paintCauldron(h){
+  $('brew').style.background=h;
+  $('glow').style.background='radial-gradient(ellipse at center,'+h+' 0%,rgba(0,0,0,0) 68%)';
+}
+function paintDrops(){
+  var box=$('drops');box.innerHTML='';
+  for(var i=0;i<ROUND;i++){var s=document.createElement('span');if(i<drops)s.className='on';box.appendChild(s);}
+}
+function updateMeta(){
+  $('mastered').textContent=countGlow();
+  $('petCount').textContent=countPets();$('brewCount').textContent='Potion '+(brewed+1);
+}
+function updateMode(){
+  $('modeBtn').textContent=calm?'No timer':'Timer on';
+  $('modeBtn').classList.toggle('live',!calm);
+  fuseBar.classList.toggle('hide',calm);
+  $('legGlow').textContent='Glowing — you lit this one!';
+}
+var toastT=null;
+function toast(a,msg){
+  var t=$('toast');
+  t.innerHTML=petSVG(designFor(a),36,true,HUES[a])+'<span>'+esc(msg)+'</span>';
+  t.classList.add('on');
+  clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove('on');},2600);
+}
+
+/* ================= a question ================= */
+function ask(){
+  if($('namer').classList.contains('on'))return;
+  locked=false;rack.classList.remove('locked');
+  var p=pick(),a=p.a,b=p.b,f=getFact(a,b);
+  var flip=Math.random()<0.45;
+  cur={a:a,b:b,p:a*b,left:flip?b:a,right:flip?a:b,fresh:p.fresh,limit:limitFor(f)};
+  lastKey=fkey(a,b);
+  paintCauldron(HUES[a]);
+  var pet=getPet(a);
+  if(p.fresh) tag.textContent='New ingredient';
+  else if(earned(f)) tag.textContent=(pet&&pet.name)?pet.name+' is watching':'You know this one';
+  else tag.textContent=calm?('Learning · '+Math.min(f.s,REPS)+' of '+REPS):'Still learning';
+  tag.classList.add('on');
+  question.innerHTML=cur.left+'<span class="op">&times;</span>'+cur.right+'<span class="op">=</span><span class="ask">?</span>';
+  say.textContent='';say.className='say';
+  var opts=shuffle(distractors(a,b).concat([cur.p]));
+  rack.innerHTML='';
+  opts.forEach(function(v,i){
+    var btn=document.createElement('button');
+    btn.className='bottle';btn.setAttribute('aria-label',String(v));
+    btn.innerHTML='<span class="cork"></span><span class="neck"></span><span class="glass">'+
+      '<span class="fill" style="background-color:'+HUES[a]+';height:'+(38+i*11)+'%"></span>'+
+      '<span class="num">'+v+'</span></span><span class="kbd">'+(i+1)+'</span>';
+    btn.onclick=function(){answer(v,btn);};
+    rack.appendChild(btn);
+  });
+  tStart=Date.now();
+  if(calm){cancelAnimationFrame(raf);} else runFuse(cur.limit);
+}
+function runFuse(ms){
+  cancelAnimationFrame(raf);
+  var t0=Date.now();
+  (function step(){
+    if(calm){fuse.style.transform='scaleX(1)';return;}
+    var left=1-(Date.now()-t0)/ms;
+    if(left<=0){fuse.style.transform='scaleX(0)';timeUp();return;}
+    fuse.style.transform='scaleX('+left+')';raf=requestAnimationFrame(step);
+  })();
+}
+function markRight(){
+  var k=rack.children;
+  for(var i=0;i<k.length;i++)if(parseInt(k[i].getAttribute('aria-label'),10)===cur.p)k[i].classList.add('right');
+}
+
+var feedT=null;
+function feed(a){
+  var pet=getPet(a);
+  if(!pet||!pet.name)return null;
+  var before=stageOf(pet.xp).name;
+  pet.xp++;
+  var after=stageOf(pet.xp);
+  var el=$('feed');
+  el.innerHTML=petSVG(designFor(a),38,after.name==='Radiant',HUES[a])+'<b>+1</b>';
+  el.classList.add('on');
+  clearTimeout(feedT);feedT=setTimeout(function(){el.classList.remove('on');},1100);
+  if(after.name!==before)setTimeout(function(){toast(a,pet.name+' is now '+after.name+'.');beep([523,784,1046],0.22,0.08);},700);
+  return pet;
+}
+function afterTurn(delay){
+  if(queue.length){setTimeout(showNamer,delay);return;}
+  if(drops>=ROUND){setTimeout(finish,delay);return;}
+  setTimeout(ask,delay);
+}
+function answer(v,btn){
+  if(locked)return;
+  locked=true;rack.classList.add('locked');cancelAnimationFrame(raf);
+  var ms=Date.now()-tStart,f=getFact(cur.a,cur.b),was=earned(f);
+  f.n++;
+  if(v===cur.p){
+    f.c++;f.s++;f.ema=f.ema?Math.round(f.ema*0.6+ms*0.4):ms;streak++;
+    btn.classList.add('right');
+    cauldron.classList.add('pop');setTimeout(function(){cauldron.classList.remove('pop');},520);
+    beep([660,880,1180],0.16,0.09);
+    say.textContent='Yes! That one goes in.';
+    say.className='say good';
+    var pet=feed(cur.a);if(pet)say.textContent='Yes! '+pet.name+' ate that one.';
+    if(!was&&!earned(f)){
+      var left=REPS-f.s;
+      if(left>0&&left<=2)say.textContent=left===1?'One more and this jar lights up!':left+' more and this jar lights up.';
+    }
+    if(checkEarn(f)&&!was){
+      say.textContent='✨ That jar is glowing now!';
+      if(rowDone(cur.a)&&!(pets[cur.a]&&pets[cur.a].name))queue.push(cur.a);
+    }
+    drops++;paintDrops();updateMeta();save();
+    afterTurn(720);
+  }else{
+    btn.classList.add('wrong');markRight();
+    beep([523,392],0.14,0.05);
+    say.textContent='It’s '+cur.left+' × '+cur.right+' = '+cur.p+'. You’ve got this — next one!';
+    say.className='say';
+    updateMeta();save();afterTurn(1500);
+  }
+}
+function timeUp(){
+  if(locked||calm)return;
+  locked=true;rack.classList.add('locked');
+  var f=getFact(cur.a,cur.b);f.n++;f.s=0;streak=0;
+  markRight();beep([380],0.22,0.05);
+  say.textContent=cur.left+' × '+cur.right+' is '+cur.p+'. Here it is — take it again later.';
+  say.className='say miss';
+  updateMeta();save();afterTurn(2100);
+}
+
+/* ================= hatching / naming ================= */
+function showNamer(){
+  var a=renaming||queue[0];
+  $('namePet').innerHTML=petSVG(designFor(a),120,false,HUES[a]).replace('<svg','<svg class="big"');
+  if(renaming){
+    $('nameTitle').textContent='Rename your '+SPECIES[designFor(a)]+'.';
+    $('nameLine').textContent='Currently called '+pets[a].name+'.';
+    $('nameIn').value=pets[a].name;
+  }else{
+    $('nameTitle').textContent='A '+SPECIES[designFor(a)]+' hatched!';
+    $('nameLine').textContent='All ten '+a+'s are glowing, so this one came out of its egg! It lives on the '+a+'s shelf and loves every answer you get right.';
+    $('nameIn').value='';
+    beep([523,659,784,1046],0.24,0.09);
+  }
+  $('namer').classList.add('on');
+  setTimeout(function(){$('nameIn').focus();},60);
+}
+function takeName(){
+  var a=renaming||queue.shift();
+  var v=$('nameIn').value.trim();
+  if(renaming){if(v)pets[a].name=v;renaming=0;}
+  else{if(!pets[a])pets[a]={name:'',xp:0};pets[a].name=v||SPECIES[designFor(a)].split(' ')[0];}
+  save();
+  $('namer').classList.remove('on');
+  updateMeta();
+  if($('shelf').classList.contains('on')){buildShelf();return;}
+  if(queue.length){setTimeout(showNamer,420);return;}
+  if(drops>=ROUND)setTimeout(finish,300);else setTimeout(ask,300);
+}
+
+/* ================= potion done ================= */
+function finish(){
+  brewed++;
+  var hue=HUES[cur.a],name=potionName();
+  save();
+  $('doneName').textContent=name;
+  $('doneFill').style.background=hue;
+  $('doneLine').textContent='You poured a whole new potion! '+countGlow()+' of '+TOTAL+' jars glowing. Every potion has its own name.';
+  $('done').classList.add('on');
+  beep([660,880,1100,1320],0.22,0.09);
+  updateMeta();
+}
+
+/* ================= shelf ================= */
+function buildShelf(){
+  var host=$('shelves');host.innerHTML='';
+  ROWS.forEach(function(a){
+    var done=rowDone(a),pet=getPet(a),block=document.createElement('div');
+    block.className='rowblock';
+    var head;
+    if(pet&&pet.name){
+      var st=stageOf(pet.xp),nx=nextAt(pet.xp),prev=st.at,span=nx?nx-prev:1,got=nx?pet.xp-prev:1;
+      head='<div class="rowtop">'+petSVG(designFor(a),46,st.name==='Radiant',HUES[a])+
+        '<div class="who"><h3>'+esc(pet.name)+' <em>'+SPECIES[designFor(a)]+'</em>'+
+        (plates[a]?'<span class="plate">'+esc(plates[a])+'</span>':'')+'</h3>'+
+        '<div class="petline"><u data-ren="'+a+'">'+st.name+' &middot; rename</u>'+
+        '<span class="xp"><i style="width:'+(nx?Math.round(got/span*100):100)+'%;background:'+HUES[a]+'"></i></span>'+
+        '<span>'+(nx?(nx-pet.xp)+' more to grow up':'fully grown')+'</span></div></div></div>';
+    }else{
+      head='<div class="rowtop">'+eggSVG(a,46)+
+        '<div class="who"><h3>The '+a+'s <em>'+SUB[a]+'</em></h3>'+
+        '<div class="petline">'+(done?'Ready to hatch':'Light up all ten jars and this egg hatches')+
+        (done?'':' <u class="iknow" data-know="'+a+'">I already know my '+a+'s</u>')+'</div></div></div>';
+    }
+    var jars='<div class="jars">';
+    for(var b=1;b<=BMAX;b++){
+      var f=getFact(a,b),full=earned(f);
+      var h=f.n===0?8:(full?100:Math.min(88,26+f.s*(calm?12:18)));
+      jars+='<div class="jar'+(full?' full':'')+'" title="'+a+' × '+b+' = '+(a*b)+(full?'':' · '+f.s+' of '+(calm?REPS:3))+'">'+
+        '<i style="height:'+h+'%;background:'+HUES[a]+'"></i><b>'+a+'×'+b+'</b></div>';
+    }
+    jars+='</div><div class="plank"></div>';
+    block.innerHTML=head+jars;
+    host.appendChild(block);
+    if(done&&!(pet&&pet.name)&&queue.indexOf(a)<0)queue.push(a);
+  });
+  Array.prototype.forEach.call(host.querySelectorAll('[data-ren]'),function(el){
+    el.onclick=function(){renaming=parseInt(el.getAttribute('data-ren'),10);showNamer();};
+  });
+  Array.prototype.forEach.call(host.querySelectorAll('[data-know]'),function(el){
+    el.onclick=function(){knowTable(parseInt(el.getAttribute('data-know'),10));};
+  });
+  $('shelfNote').textContent=countGlow()+' of '+TOTAL+' jars glowing · '+countPets()+' of '+ROWS.length+' pets hatched · '+
+    brewed+' potion'+(brewed===1?'':'s')+' brewed, all different.';
+}
+function showShelf(on){
+  $('shelf').classList.toggle('on',on);
+  $('play').classList.toggle('off',on);
+  $('shelfBtn').textContent=on?'Back to brewing':'My shelf';
+  if(on){cancelAnimationFrame(raf);locked=true;rack.classList.add('locked');buildShelf();}
+  else ask();
+}
+
+/* ================= stories (the reward) ================= */
+function hatchedNames(){var a=[],k;for(k in pets){if(pets[k]&&pets[k].name)a.push(pets[k].name);}return a;}
+function fillStory(s){
+  var names=hatchedNames();
+  function one(ex){var pool=names.filter(function(n){return n!==ex;});return pool.length?pool[Math.floor(Math.random()*pool.length)]:null;}
+  var p1=one(null)||'your newest hatchling';
+  var p2=one(p1)||'another little one';
+  return s.replace(/\{pet2\}/g,p2).replace(/\{pet\}/g,p1);
+}
+function pickStoryIndex(){
+  var free=[],i;
+  for(i=0;i<STORIES.length;i++)if(!usedStories[i])free.push(i);
+  if(!free.length){usedStories={};for(i=0;i<STORIES.length;i++)free.push(i);}
+  return free[Math.floor(Math.random()*free.length)];
+}
+function showStory(){
+  var i=pickStoryIndex();usedStories[i]=1;
+  var text=fillStory(STORIES[i]);
+  storyLog.push(text);save();
+  var named=Object.keys(pets).filter(function(k){return pets[k]&&pets[k].name;});
+  var a=named.length?parseInt(named[Math.floor(Math.random()*named.length)],10):ROWS[0];
+  welcomeMode=false;
+  $('storyTitle').textContent='A little lab tale';
+  $('storyClose').textContent='Back to brewing';
+  $('storyPet').innerHTML=petSVG(designFor(a),96,true,HUES[a]).replace('<svg','<svg class="big"');
+  $('storyText').textContent=text;
+  $('done').classList.remove('on');
+  $('story').classList.add('on');
+  beep([523,659,784],0.2,0.07);
+}
+/* first-run welcome tale — seeds her storybook, then sends her to the shelf */
+function startWelcome(){
+  storyLog.push(WELCOME);save();
+  welcomeMode=true;
+  $('storyTitle').textContent='Welcome to the lab!';
+  $('storyClose').textContent='See my lab →';
+  var a=ROWS[Math.floor(Math.random()*ROWS.length)];
+  $('storyPet').innerHTML=petSVG(designFor(a),96,true,HUES[a]).replace('<svg','<svg class="big"');
+  $('storyText').textContent=WELCOME;
+  $('story').classList.add('on');
+  beep([523,659,784,1046],0.24,0.09);
+}
+function buildStorybook(){
+  var host=$('bookList');host.innerHTML='';
+  if(!storyLog.length){host.innerHTML='<p class="bookempty">No stories yet. Finish a potion and Fizzwick will tell you what everyone has been up to!</p>';return;}
+  for(var i=storyLog.length-1;i>=0;i--){
+    var d=document.createElement('div');d.className='bookitem';
+    d.innerHTML='<b>Tale '+(i+1)+'</b>'+esc(storyLog[i]);
+    host.appendChild(d);
+  }
+}
+
+/* ================= times-table helper (count up by the number) ================= */
+var chartTimers=[];
+function clearChartTimers(){chartTimers.forEach(clearTimeout);chartTimers=[];}
+function buildGrid(){
+  var g=$('grid');g.innerHTML='';var r,c,el;
+  el=document.createElement('div');el.className='cell hdr';el.textContent='×';g.appendChild(el);
+  for(c=1;c<=10;c++){el=document.createElement('div');el.className='cell hdr';el.textContent=c;g.appendChild(el);}
+  for(r=1;r<=10;r++){
+    el=document.createElement('div');el.className='cell hdr';el.textContent=r;g.appendChild(el);
+    for(c=1;c<=10;c++){el=document.createElement('div');el.className='cell';el.id='c_'+r+'_'+c;el.textContent=r*c;g.appendChild(el);}
+  }
+}
+function openChart(){
+  if(!cur)return;
+  clearChartTimers();
+  var a=cur.a,b=cur.b,cells=$('grid').querySelectorAll('.cell'),i,c,r;
+  $('chartHead').innerHTML='Counting up by <b>'+a+'</b>';
+  $('chartSay').textContent='';
+  for(i=0;i<cells.length;i++){cells[i].classList.remove('band','step','answer','dim');if(!cells[i].classList.contains('hdr'))cells[i].classList.add('dim');}
+  for(c=1;c<=10;c++){var rc=$('c_'+a+'_'+c);if(rc){rc.classList.remove('dim');rc.classList.add('band');}}
+  for(r=1;r<=10;r++){var cc=$('c_'+r+'_'+b);if(cc){cc.classList.remove('dim');cc.classList.add('band');}}
+  $('chart').classList.add('on');
+  var step=1;
+  (function walk(){
+    if(step>b)return;
+    var cell=$('c_'+a+'_'+step);
+    if(cell){cell.classList.remove('band');cell.classList.add(step<b?'step':'answer');}
+    var seq=[],k;for(k=1;k<=step;k++)seq.push(a*k);
+    $('chartSay').textContent=step<b?seq.join(' · '):(a+' × '+b+' = '+(a*b)+'  🎉');
+    beep([440+step*45],0.09,0.035);
+    step++;
+    chartTimers.push(setTimeout(walk,620));
+  })();
+}
+function closeChart(){clearChartTimers();$('chart').classList.remove('on');}
+
+/* ================= I already know this ================= */
+function knowTable(a){
+  if(!confirm('Light up all your '+a+'s? Only tap this if you already know them!'))return;
+  for(var b=1;b<=BMAX;b++){var f=getFact(a,b);f.n=Math.max(f.n,REPS);f.c=Math.max(f.c,REPS);f.s=Math.max(f.s,REPS);f.ema=f.ema||2500;f.e=1;}
+  if(rowDone(a)&&!(pets[a]&&pets[a].name)&&queue.indexOf(a)<0)queue.push(a);
+  save();updateMeta();buildShelf();
+  if(queue.length)showNamer();
+}
+
+/* ================= wiring ================= */
+$('shelfBtn').onclick=function(){showShelf(!$('shelf').classList.contains('on'));};
+$('brewBtn').onclick=function(){showShelf(false);};
+$('migrateYes').onclick=function(){doMigrate(pendingLegacy);};
+$('migrateNo').onclick=function(){$('migrate').classList.remove('on');pendingLegacy=null;startWelcome();};
+$('modeBtn').onclick=function(){
+  calm=!calm;updateMode();save();
+  if(!$('shelf').classList.contains('on')&&!$('done').classList.contains('on')&&!$('namer').classList.contains('on')){
+    if(calm){cancelAnimationFrame(raf);}
+    else if(!locked){tStart=Date.now();runFuse(cur?cur.limit:10000);}
+  }
+};
+$('soundBtn').onclick=function(){
+  sound=!sound;this.textContent=sound?'Sound on':'Sound off';
+  this.setAttribute('aria-pressed',String(sound));save();
+};
+$('againBtn').onclick=function(){$('done').classList.remove('on');drops=0;paintDrops();updateMeta();ask();};
+$('peekBtn').onclick=function(){$('done').classList.remove('on');drops=0;paintDrops();showShelf(true);};
+$('nameBtn').onclick=takeName;
+$('nameIn').addEventListener('keydown',function(e){if(e.key==='Enter')takeName();});
+$('resetBtn').onclick=function(){
+  if(!confirm('Empty every jar? The pets go back to being eggs too.'))return;
+  facts={};plates={};pets={};used={};species={};usedStories={};storyLog=[];brewed=0;drops=0;streak=0;queue=[];
+  ensureSpecies();preload();save();buildShelf();paintDrops();updateMeta();startWelcome();
+};
+$('exportBtn').onclick=exportSave;
+$('importBtn').onclick=function(){$('importFile').click();};
+$('importFile').onchange=function(){importSave(this.files[0]);this.value='';};
+$('chartBtn').onclick=openChart;
+$('chartClose').onclick=closeChart;
+$('storyBtn').onclick=showStory;
+$('storyClose').onclick=function(){
+  $('story').classList.remove('on');
+  if(welcomeMode){welcomeMode=false;showShelf(true);return;}
+  drops=0;paintDrops();updateMeta();ask();
+};
+$('storybookBtn').onclick=function(){buildStorybook();$('storybook').classList.add('on');};
+$('bookClose').onclick=function(){$('storybook').classList.remove('on');};
+function anyVeil(){return $('shelf').classList.contains('on')||$('done').classList.contains('on')||$('namer').classList.contains('on')||$('chart').classList.contains('on')||$('story').classList.contains('on')||$('storybook').classList.contains('on');}
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){closeChart();$('storybook').classList.remove('on');return;}
+  if(anyVeil())return;
+  var n=parseInt(e.key,10);
+  if(n>=1&&n<=4&&rack.children[n-1])rack.children[n-1].click();
+});
+
+/* ================= go ================= */
+var hadSave=load();
+ensureSpecies();
+preload();
+calm=true;                         /* always calm — no clock, no pressure */
+$('modeBtn').style.display='none'; /* hide the timer toggle entirely */
+$('soundBtn').textContent=sound?'Sound on':'Sound off';
+$('soundBtn').setAttribute('aria-pressed',String(sound));
+updateMode();paintDrops();updateMeta();buildGrid();
+
+if(hadSave){
+  save();
+  ROWS.forEach(function(a){if(rowDone(a)&&!(pets[a]&&pets[a].name))queue.push(a);});
+  var freshStart=(brewed===0&&storyLog.length===0&&countGlow()===0&&countPets()===0);
+  if(queue.length)showNamer();
+  else if(freshStart)startWelcome();
+  else ask();
+}else{
+  var legacy=legacySave();
+  if(legacy){ startMigration(legacy); }   /* wait for her choice — don't write the new save yet */
+  else{ save(); startWelcome(); }
+}
+
+/* offline caching so it works with no wifi once added to the Home Screen */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});
+}
+})();
+</script>
+</body>
+</html>
