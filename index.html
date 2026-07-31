@@ -191,6 +191,13 @@ header{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .storycard #storyText{font-family:var(--display);font-size:18.5px;line-height:1.55;color:var(--parchment)}
 .storycard #storyPet svg{filter:drop-shadow(0 0 10px rgba(255,192,97,.35))}
 .bookcard{max-width:460px;max-height:82vh;overflow:auto}
+.bookcount{font-size:13px;color:var(--parchment-dim);margin:-4px 0 2px}
+.bookgrid{display:grid;grid-template-columns:repeat(10,1fr);gap:6px;width:100%}
+.bookcell{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;border-radius:6px;
+  font-size:12px;font-variant-numeric:tabular-nums;border:1px solid rgba(239,227,200,.14);
+  background:rgba(239,227,200,.04);color:rgba(239,227,200,.35)}
+.bookcell.got{border-color:rgba(255,192,97,.55);background:rgba(255,192,97,.16);color:#FFF6E2;cursor:pointer}
+@media(hover:hover){.bookcell.got:hover{background:rgba(255,192,97,.3)}}
 #bookList{display:flex;flex-direction:column;gap:10px;width:100%;text-align:left;margin:2px 0}
 .bookitem{border:1px solid rgba(239,227,200,.16);border-radius:10px;padding:10px 12px;font-size:14px;line-height:1.45;color:var(--parchment-dim);background:rgba(239,227,200,.03)}
 .bookitem b{color:var(--amber);font-family:var(--display);font-weight:500;display:block;margin-bottom:3px;font-size:13px}
@@ -300,7 +307,8 @@ header{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 <div class="veil" id="storybook">
   <div class="card bookcard">
     <h2>📖 My Storybook</h2>
-    <div id="bookList"></div>
+    <p class="bookcount" id="bookCount"></p>
+    <div class="bookgrid" id="bookGrid"></div>
     <button class="go" id="bookClose">Close</button>
   </div>
 </div>
@@ -488,7 +496,7 @@ var NOUN=['Elixir','Draught','Tonic','Brew','Philtre','Fizz','Syrup','Cordial',
  'Infusion','Essence','Distillate','Remedy','Nectar','Serum'];
 
 var facts={},plates={},pets={},used={},species={},usedStories={},storyLog=[],brewed=0,sound=true,calm=true,storeOk=true;
-var cur=null,drops=0,streak=0,lastKey='',tStart=0,raf=null,locked=true,queue=[],renaming=0,welcomeMode=false;
+var cur=null,drops=0,streak=0,lastKey='',tStart=0,raf=null,locked=true,queue=[],renaming=0,welcomeMode=false,bookReturn=false;
 
 /* ================= facts ================= */
 function fkey(a,b){return a+'x'+b;}
@@ -1028,7 +1036,7 @@ function showStory(){
   storyLog.push(text);save();
   var named=SECS.filter(function(k){return pets[k]&&pets[k].name;});
   var a=named.length?named[Math.floor(Math.random()*named.length)]:SECS[0];
-  welcomeMode=false;
+  welcomeMode=false;bookReturn=false;
   $('storyTitle').textContent='A little lab tale';
   $('storyClose').textContent='Back to brewing';
   $('storyPet').innerHTML=petSVG(designFor(a),96,true,hueOf(a)).replace('<svg','<svg class="big"');
@@ -1049,14 +1057,31 @@ function startWelcome(){
   $('story').classList.add('on');
   beep([523,659,784,1046],0.24,0.09);
 }
+/* the whole collection: every tale numbered 1..N, owned ones readable, the rest locked */
 function buildStorybook(){
-  var host=$('bookList');host.innerHTML='';
-  if(!storyLog.length){host.innerHTML='<p class="bookempty">No stories yet. Finish a potion and Fizzwick will tell you what everyone has been up to!</p>';return;}
-  for(var i=storyLog.length-1;i>=0;i--){
-    var d=document.createElement('div');d.className='bookitem';
-    d.innerHTML='<b>Tale '+(i+1)+'</b>'+esc(storyLog[i]);
-    host.appendChild(d);
+  var host=$('bookGrid');host.innerHTML='';var got=0,i;
+  for(i=0;i<STORIES.length;i++){
+    var owned=!!usedStories[i];if(owned)got++;
+    var el=document.createElement('button');
+    el.className='bookcell'+(owned?' got':'');
+    el.textContent=owned?(i+1):'?';
+    if(owned){(function(idx){el.onclick=function(){readStory(idx);};})(i);}
+    host.appendChild(el);
   }
+  $('bookCount').textContent=got+' of '+STORIES.length+' tales collected';
+}
+/* re-read a collected tale; closing returns to the storybook */
+function readStory(i){
+  bookReturn=true;welcomeMode=false;
+  var a=SECS.filter(function(k){return pets[k]&&pets[k].name;});
+  a=a.length?a[Math.floor(Math.random()*a.length)]:SECS[0];
+  $('storyTitle').textContent='Tale '+(i+1);
+  $('storyClose').textContent='Back to my storybook';
+  $('storyPet').innerHTML=petSVG(designFor(a),96,true,hueOf(a)).replace('<svg','<svg class="big"');
+  $('storyText').textContent=fillStory(STORIES[i]);
+  $('storybook').classList.remove('on');
+  $('story').classList.add('on');
+  beep([523,659,784],0.18,0.06);
 }
 
 /* ================= times-table helper (count up by the number) ================= */
@@ -1181,6 +1206,7 @@ $('chartClose').onclick=closeChart;
 $('storyBtn').onclick=showStory;
 $('storyClose').onclick=function(){
   $('story').classList.remove('on');
+  if(bookReturn){bookReturn=false;buildStorybook();$('storybook').classList.add('on');return;}
   if(welcomeMode){welcomeMode=false;showShelf(true);return;}
   drops=0;paintDrops();updateMeta();ask();
 };
