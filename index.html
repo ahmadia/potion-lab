@@ -138,6 +138,9 @@ header{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .danger{align-self:flex-start;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;margin-top:8px;
   color:rgba(255,127,168,.65);border-bottom:1px solid rgba(255,127,168,.3);padding-bottom:2px}
 .backup{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 6px}
+.settings{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:2px 0 8px}
+.setlabel{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--parchment-dim)}
+.modechip.live{color:var(--ink);background:var(--amber);border-color:var(--amber)}
 
 .veil{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:24px;
   background:rgba(20,12,24,.88);backdrop-filter:blur(7px);z-index:20}
@@ -181,6 +184,7 @@ header{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .cell.band{background:rgba(255,192,97,.1);color:var(--parchment)}
 .cell.step{background:rgba(255,192,97,.32);color:#FFF6E2;box-shadow:0 0 10px rgba(255,192,97,.4)}
 .cell.answer{background:var(--amber);color:var(--ink);font-weight:700;transform:scale(1.15);box-shadow:0 0 16px rgba(255,192,97,.75)}
+.numline{display:grid;grid-template-columns:repeat(11,1fr);gap:4px;width:100%}
 .chartsay{min-height:22px;font-size:15px;color:var(--amber);font-family:var(--display)}
 
 .storycard{max-width:420px}
@@ -224,8 +228,8 @@ header{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
     <button class="peek" id="chartBtn">Peek at the chart</button>
     <div class="drops" id="drops" aria-hidden="true"></div>
     <div class="meta">
-      <div>Jars <b id="mastered">0</b>/100</div>
-      <div>Pets <b id="petCount">0</b>/10</div>
+      <div>Jars <b id="mastered">0</b>/<span id="jarTotal">100</span></div>
+      <div>Pets <b id="petCount">0</b>/<span id="petTotal">10</span></div>
     </div>
   </section>
 
@@ -238,6 +242,11 @@ header{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
       <span><i class="dot m"></i> <b id="legGlow" style="font-weight:400"></b></span>
     </div>
     <p class="empty" id="shelfNote"></p>
+    <div class="settings">
+      <span class="setlabel">Practice:</span>
+      <button class="chip modechip" id="modeX">Times Tables</button>
+      <button class="chip modechip" id="modeAS">Add &amp; Subtract</button>
+    </div>
     <div class="backup">
       <button class="chip" id="storybookBtn">📖 My storybook</button>
       <button class="chip" id="exportBtn">Back up to Files</button>
@@ -273,6 +282,7 @@ header{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   <div class="card chartcard">
     <div class="charthead" id="chartHead"></div>
     <div class="grid" id="grid"></div>
+    <div class="numline" id="numline"></div>
     <p class="chartsay" id="chartSay"></p>
     <button class="go" id="chartClose">Back to my potion</button>
   </div>
@@ -323,6 +333,34 @@ var SPECIES={1:'Dustwing Moth',2:'Pipistrelle Bat',3:'Bogwart Toad',4:'Emberling
              13:'Lantern Firefly',14:'Twinkle Starfish'};
 /* each table gets a random creature drawn from this pool (fixed once per save) */
 var POOL=[1,2,3,4,5,6,7,8,9,10,11,12,13,14];
+
+/* ===== mode + sections =====
+   MODE 'x' = times tables; MODE 'as' = addition & subtraction (within 20).
+   A "section" (a) is a shelf: a table number (x) or an id like a3 / s7 (add/sub).
+   Fact progress is keyed a+'x'+b regardless of mode; factOf(a,b) is the question. */
+var MODE='x', SECS=[], SEC={};
+var AS_DESIGN=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,1,2,3,4,5,6];
+var AS_HUE=['#6FE3B8','#FFC061','#FF7FA8','#B99BFF','#6FC9E8','#FF8E72','#C7E36F','#E58BE0','#7EA8FF','#9D8DF1',
+            '#7FD9C0','#F2B84B','#FF9FC0','#C9B3FF','#8FD6F0','#FFA98C','#D6EC8A','#EDA6E8','#98BBFF','#B4A8F5'];
+function buildSecs(){
+  SECS=[];SEC={};var n,i,id;
+  if(MODE==='as'){
+    i=0;
+    for(n=1;n<=10;n++){id='a'+n;SECS.push(id);SEC[id]={op:'+',n:n,design:AS_DESIGN[i],hue:AS_HUE[i],label:'Adding '+n,sub:'count on '+n};i++;}
+    for(n=1;n<=10;n++){id='s'+n;SECS.push(id);SEC[id]={op:'-',n:n,design:AS_DESIGN[i],hue:AS_HUE[i],label:'Take away '+n,sub:'count back '+n};i++;}
+  }else{
+    for(n=1;n<=10;n++){SECS.push(n);SEC[n]={op:'x',n:n,design:n,hue:HUES[n],label:'The '+n+'s',sub:SUB[n]};}
+  }
+}
+/* the actual question for section a, step b (1..10) */
+function factOf(a,b){
+  var s=SEC[a];
+  if(s.op==='+')return {left:b,right:s.n,op:'+',ans:b+s.n};
+  if(s.op==='-')return {left:s.n+b,right:s.n,op:'−',ans:b};   /* (n+b) − n = b, within 20 */
+  return {left:s.n,right:b,op:'×',ans:s.n*b};
+}
+function commutative(a){return SEC[a].op!=='-';}   /* don't flip subtraction */
+function totalJars(){return SECS.length*BMAX;}
 
 /* ===== STORY-DATA-START ===== warm micro-stories; {pet}/{pet2} become her hatchlings' names */
 var STORIES=[
@@ -465,8 +503,8 @@ function checkEarn(f){
 }
 function slipping(f){return earned(f)&&(f.s===0||(!calm&&f.ema>4200));}
 function rowDone(a){for(var b=1;b<=BMAX;b++)if(!earned(getFact(a,b)))return false;return true;}
-function countGlow(){var n=0;ROWS.forEach(function(a){for(var b=1;b<=BMAX;b++)if(earned(getFact(a,b)))n++;});return n;}
-function countPets(){var n=0;for(var k in pets)if(pets[k]&&pets[k].name)n++;return n;}
+function countGlow(){var n=0;SECS.forEach(function(a){for(var b=1;b<=BMAX;b++)if(earned(getFact(a,b)))n++;});return n;}
+function countPets(){var n=0;SECS.forEach(function(a){if(pets[a]&&pets[a].name)n++;});return n;}
 
 /* ================= pets ================= */
 function getPet(a){return pets[a];}
@@ -566,10 +604,11 @@ function petSVG(design,px,glow,hue){
    1 Dustwing Moth · 2 Pipistrelle Bat · 3 Bogwart Toad · 4 Emberling Dragon
    5 Cloudray · 6 Spiralshell Snail · 7 Tawny Owl · 8 Inkfoot Octopus
    9 Rustpaw Fox · 10 Prickle Hedgehog */
-function designFor(a){return a;}
+function designFor(a){return SEC[a]?SEC[a].design:a;}
+function hueOf(a){return SEC[a]?SEC[a].hue:(HUES[a]||'#6FE3B8');}
 function ensureSpecies(){}
 function eggSVG(a,px){
-  var c=HUES[a];
+  var c=hueOf(a);
   return '<svg viewBox="0 0 48 48" width="'+px+'" height="'+px+'" aria-hidden="true" style="opacity:.4">'+
     '<ellipse cx="24" cy="28" rx="12" ry="15" fill="'+c+'" opacity=".35"/>'+
     '<ellipse cx="24" cy="28" rx="12" ry="15" fill="none" stroke="'+c+'" stroke-width="1.2" opacity=".7"/>'+
@@ -591,7 +630,7 @@ function potionName(){
 }
 
 /* ================= storage (real localStorage, survives close/reopen) ================= */
-function snapshot(){return {v:7,facts:facts,plates:plates,pets:pets,used:used,species:species,usedStories:usedStories,storyLog:storyLog,brewed:brewed,sound:sound,calm:calm};}
+function snapshot(){return {v:8,mode:MODE,facts:facts,plates:plates,pets:pets,used:used,species:species,usedStories:usedStories,storyLog:storyLog,brewed:brewed,sound:sound,calm:calm};}
 function save(){
   if(!storeOk)return;
   try{localStorage.setItem(KEY,JSON.stringify(snapshot()));}catch(e){storeOk=false;}
@@ -602,9 +641,11 @@ function readKey(k){
 function absorb(d){
   facts=d.facts||{};plates=d.plates||{};pets=d.pets||{};used=d.used||{};species=d.species||{};brewed=d.brewed||0;
   usedStories=d.usedStories||{};storyLog=d.storyLog||[];
+  MODE=(d.mode==='as')?'as':'x';
   if(typeof d.sound==='boolean')sound=d.sound;
   if(typeof d.calm==='boolean')calm=d.calm;
   for(var k in facts){var f=facts[k];if(f.e===undefined)f.e=(f.s>=3&&f.ema>0&&f.ema<=3500)?1:0;}
+  buildSecs();
 }
 function load(){
   var d=readKey(KEY);
@@ -626,15 +667,15 @@ function doMigrate(legacy){
   $('soundBtn').textContent=sound?'Sound on':'Sound off';
   $('soundBtn').setAttribute('aria-pressed',String(sound));
   updateMode();paintDrops();updateMeta();
-  ROWS.forEach(function(a){if(rowDone(a)&&!(pets[a]&&pets[a].name))queue.push(a);});
+  SECS.forEach(function(a){if(rowDone(a)&&!(pets[a]&&pets[a].name))queue.push(a);});
   showShelf(true);
-  toast(designFor(ROWS[0]),'Your animals and stories are back!');
+  toast(SECS[0],'Your animals and stories are back!');
 }
 var pendingLegacy=null;
 function startMigration(legacy){
   pendingLegacy=legacy;
-  var a=ROWS[0];
-  $('migratePet').innerHTML=petSVG(designFor(a),96,true,HUES[a]).replace('<svg','<svg class="big"');
+  var a=SECS[0];
+  $('migratePet').innerHTML=petSVG(designFor(a),96,true,hueOf(a)).replace('<svg','<svg class="big"');
   var petN=(legacy.pets?Object.keys(legacy.pets).filter(function(k){return legacy.pets[k]&&legacy.pets[k].name;}).length:0);
   var storyN=(legacy.storyLog?legacy.storyLog.length:0);
   $('migrateLine').textContent='We found '+petN+' animal'+(petN===1?'':'s')+' and '+storyN+' stor'+(storyN===1?'y':'ies')+' from the old lab. Want to bring them into the new one?';
@@ -688,9 +729,9 @@ function beep(fs,dur,vol){
 }
 
 /* ================= selection ================= */
-function inProgress(){var n=0;ROWS.forEach(function(a){for(var b=1;b<=BMAX;b++){var f=getFact(a,b);if(f.n>0&&!earned(f))n++;}});return n;}
+function inProgress(){var n=0;SECS.forEach(function(a){for(var b=1;b<=BMAX;b++){var f=getFact(a,b);if(f.n>0&&!earned(f))n++;}});return n;}
 function nextUnseen(){
-  for(var i=0;i<ROWS.length;i++){var a=ROWS[i];
+  for(var i=0;i<SECS.length;i++){var a=SECS[i];
     for(var j=0;j<TEACH.length;j++){var b=TEACH[j];if(getFact(a,b).n===0)return {a:a,b:b};}}
   return null;
 }
@@ -705,7 +746,7 @@ function weight(f){
 }
 function pick(){
   var pool=[],total=0;
-  ROWS.forEach(function(a){
+  SECS.forEach(function(a){
     for(var b=1;b<=BMAX;b++){
       var f=getFact(a,b);
       if(f.n===0||fkey(a,b)===lastKey)continue;
@@ -714,7 +755,7 @@ function pick(){
   });
   var nu=nextUnseen();
   if(nu&&(inProgress()<4||!pool.length)){pool.push({a:nu.a,b:nu.b,w:6,fresh:true});total+=6;}
-  if(!pool.length)return {a:1,b:1,fresh:false};
+  if(!pool.length)return {a:SECS[0],b:1,fresh:false};
   var r=Math.random()*total;
   for(var i=0;i<pool.length;i++){r-=pool[i].w;if(r<=0)return pool[i];}
   return pool[pool.length-1];
@@ -724,12 +765,14 @@ function limitFor(f){
   if(!earned(f))return f.ema?Math.max(7000,Math.min(11000,f.ema*2.4)):10000;
   return 6500;
 }
-/* three clearly-different wrong answers: neighbours from the same count-by table */
-function distractors(a,b){
-  var p=a*b,cand=[p+a,p-a,p+a*2,p-a*2,p+a*3,p-a*3],out=[],seen={},i,v;
+/* three clearly-different wrong answers, spread around the real answer p.
+   step = the table (count-by neighbours) for ×, or 1 (adjacent numbers) for +/− */
+function distractors(a,p){
+  var step=SEC[a].op==='x'?SEC[a].n:1;
+  var cand=[p+step,p-step,p+2*step,p-2*step,p+3*step,p-3*step],out=[],seen={},i,v;
   seen[p]=1;
-  for(i=0;i<cand.length&&out.length<3;i++){v=cand[i];if(v>0&&!seen[v]){seen[v]=1;out.push(v);}}
-  var g=1;while(out.length<3){v=p+g;if(v>0&&!seen[v]){seen[v]=1;out.push(v);}g++;}
+  for(i=0;i<cand.length&&out.length<3;i++){v=cand[i];if(v>=0&&!seen[v]){seen[v]=1;out.push(v);}}
+  var g=1;while(out.length<3){v=p+g;if(v>=0&&!seen[v]){seen[v]=1;out.push(v);}g++;}
   return out;
 }
 function shuffle(A){for(var i=A.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=A[i];A[i]=A[j];A[j]=t;}return A;}
@@ -747,8 +790,9 @@ function paintDrops(){
   for(var i=0;i<ROUND;i++){var s=document.createElement('span');if(i<drops)s.className='on';box.appendChild(s);}
 }
 function updateMeta(){
-  $('mastered').textContent=countGlow();
-  $('petCount').textContent=countPets();$('brewCount').textContent='Potion '+(brewed+1);
+  $('mastered').textContent=countGlow();$('jarTotal').textContent=totalJars();
+  $('petCount').textContent=countPets();$('petTotal').textContent=SECS.length;
+  $('brewCount').textContent='Potion '+(brewed+1);
 }
 function updateMode(){
   $('modeBtn').textContent=calm?'No timer':'Timer on';
@@ -759,7 +803,7 @@ function updateMode(){
 var toastT=null;
 function toast(a,msg){
   var t=$('toast');
-  t.innerHTML=petSVG(designFor(a),36,true,HUES[a])+'<span>'+esc(msg)+'</span>';
+  t.innerHTML=petSVG(designFor(a),36,true,hueOf(a))+'<span>'+esc(msg)+'</span>';
   t.classList.add('on');
   clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove('on');},2600);
 }
@@ -769,24 +813,25 @@ function ask(){
   if($('namer').classList.contains('on'))return;
   locked=false;rack.classList.remove('locked');
   var p=pick(),a=p.a,b=p.b,f=getFact(a,b);
-  var flip=Math.random()<0.45;
-  cur={a:a,b:b,p:a*b,left:flip?b:a,right:flip?a:b,fresh:p.fresh,limit:limitFor(f)};
+  var q=factOf(a,b);
+  var flip=commutative(a)&&Math.random()<0.45;
+  cur={a:a,b:b,ans:q.ans,left:flip?q.right:q.left,right:flip?q.left:q.right,op:q.op,fresh:p.fresh,limit:limitFor(f)};
   lastKey=fkey(a,b);
-  paintCauldron(HUES[a]);
+  paintCauldron(hueOf(a));
   var pet=getPet(a);
   if(p.fresh) tag.textContent='New ingredient';
   else if(earned(f)) tag.textContent=(pet&&pet.name)?pet.name+' is watching':'You know this one';
   else tag.textContent=calm?('Learning · '+Math.min(f.s,REPS)+' of '+REPS):'Still learning';
   tag.classList.add('on');
-  question.innerHTML=cur.left+'<span class="op">&times;</span>'+cur.right+'<span class="op">=</span><span class="ask">?</span>';
+  question.innerHTML=cur.left+'<span class="op">'+cur.op+'</span>'+cur.right+'<span class="op">=</span><span class="ask">?</span>';
   say.textContent='';say.className='say';
-  var opts=shuffle(distractors(a,b).concat([cur.p]));
+  var opts=shuffle(distractors(a,q.ans).concat([cur.ans]));
   rack.innerHTML='';
   opts.forEach(function(v,i){
     var btn=document.createElement('button');
     btn.className='bottle';btn.setAttribute('aria-label',String(v));
     btn.innerHTML='<span class="cork"></span><span class="neck"></span><span class="glass">'+
-      '<span class="fill" style="background-color:'+HUES[a]+';height:'+(38+i*11)+'%"></span>'+
+      '<span class="fill" style="background-color:'+hueOf(a)+';height:'+(38+i*11)+'%"></span>'+
       '<span class="num">'+v+'</span></span><span class="kbd">'+(i+1)+'</span>';
     btn.onclick=function(){answer(v,btn);};
     rack.appendChild(btn);
@@ -806,7 +851,7 @@ function runFuse(ms){
 }
 function markRight(){
   var k=rack.children;
-  for(var i=0;i<k.length;i++)if(parseInt(k[i].getAttribute('aria-label'),10)===cur.p)k[i].classList.add('right');
+  for(var i=0;i<k.length;i++)if(parseInt(k[i].getAttribute('aria-label'),10)===cur.ans)k[i].classList.add('right');
 }
 
 var feedT=null;
@@ -817,7 +862,7 @@ function feed(a){
   pet.xp++;
   var after=stageOf(pet.xp);
   var el=$('feed');
-  el.innerHTML=petSVG(designFor(a),38,after.name==='Radiant',HUES[a])+'<b>+1</b>';
+  el.innerHTML=petSVG(designFor(a),38,after.name==='Radiant',hueOf(a))+'<b>+1</b>';
   el.classList.add('on');
   clearTimeout(feedT);feedT=setTimeout(function(){el.classList.remove('on');},1100);
   if(after.name!==before)setTimeout(function(){toast(a,pet.name+' is now '+after.name+'.');beep([523,784,1046],0.22,0.08);},700);
@@ -833,7 +878,7 @@ function answer(v,btn){
   locked=true;rack.classList.add('locked');cancelAnimationFrame(raf);
   var ms=Date.now()-tStart,f=getFact(cur.a,cur.b),was=earned(f);
   f.n++;
-  if(v===cur.p){
+  if(v===cur.ans){
     f.c++;f.s++;f.ema=f.ema?Math.round(f.ema*0.6+ms*0.4):ms;streak++;
     btn.classList.add('right');
     cauldron.classList.add('pop');setTimeout(function(){cauldron.classList.remove('pop');},520);
@@ -854,7 +899,7 @@ function answer(v,btn){
   }else{
     btn.classList.add('wrong');markRight();
     beep([523,392],0.14,0.05);
-    say.textContent='It’s '+cur.left+' × '+cur.right+' = '+cur.p+'. You’ve got this — next one!';
+    say.textContent='It’s '+cur.left+' '+cur.op+' '+cur.right+' = '+cur.ans+'. You’ve got this — next one!';
     say.className='say';
     updateMeta();save();afterTurn(1500);
   }
@@ -864,7 +909,7 @@ function timeUp(){
   locked=true;rack.classList.add('locked');
   var f=getFact(cur.a,cur.b);f.n++;f.s=0;streak=0;
   markRight();beep([380],0.22,0.05);
-  say.textContent=cur.left+' × '+cur.right+' is '+cur.p+'. Here it is — take it again later.';
+  say.textContent=cur.left+' '+cur.op+' '+cur.right+' is '+cur.ans+'. Here it is — take it again later.';
   say.className='say miss';
   updateMeta();save();afterTurn(2100);
 }
@@ -872,14 +917,14 @@ function timeUp(){
 /* ================= hatching / naming ================= */
 function showNamer(){
   var a=renaming||queue[0];
-  $('namePet').innerHTML=petSVG(designFor(a),120,false,HUES[a]).replace('<svg','<svg class="big"');
+  $('namePet').innerHTML=petSVG(designFor(a),120,false,hueOf(a)).replace('<svg','<svg class="big"');
   if(renaming){
     $('nameTitle').textContent='Rename your '+SPECIES[designFor(a)]+'.';
     $('nameLine').textContent='Currently called '+pets[a].name+'.';
     $('nameIn').value=pets[a].name;
   }else{
     $('nameTitle').textContent='A '+SPECIES[designFor(a)]+' hatched!';
-    $('nameLine').textContent='All ten '+a+'s are glowing, so this one came out of its egg! It lives on the '+a+'s shelf and loves every answer you get right.';
+    $('nameLine').textContent='You lit up all of '+SEC[a].label+', so this one hatched! It lives on your shelf and loves every answer you get right.';
     $('nameIn').value='';
     beep([523,659,784,1046],0.24,0.09);
   }
@@ -902,11 +947,11 @@ function takeName(){
 /* ================= potion done ================= */
 function finish(){
   brewed++;
-  var hue=HUES[cur.a],name=potionName();
+  var hue=hueOf(cur.a),name=potionName();
   save();
   $('doneName').textContent=name;
   $('doneFill').style.background=hue;
-  $('doneLine').textContent='You poured a whole new potion! '+countGlow()+' of '+TOTAL+' jars glowing. Every potion has its own name.';
+  $('doneLine').textContent='You poured a whole new potion! '+countGlow()+' of '+totalJars()+' jars glowing. Every potion has its own name.';
   $('done').classList.add('on');
   beep([660,880,1100,1320],0.22,0.09);
   updateMeta();
@@ -915,30 +960,30 @@ function finish(){
 /* ================= shelf ================= */
 function buildShelf(){
   var host=$('shelves');host.innerHTML='';
-  ROWS.forEach(function(a){
+  SECS.forEach(function(a){
     var done=rowDone(a),pet=getPet(a),block=document.createElement('div');
     block.className='rowblock';
     var head;
     if(pet&&pet.name){
       var st=stageOf(pet.xp),nx=nextAt(pet.xp),prev=st.at,span=nx?nx-prev:1,got=nx?pet.xp-prev:1;
-      head='<div class="rowtop">'+petSVG(designFor(a),46,st.name==='Radiant',HUES[a])+
+      head='<div class="rowtop">'+petSVG(designFor(a),46,st.name==='Radiant',hueOf(a))+
         '<div class="who"><h3>'+esc(pet.name)+' <em>'+SPECIES[designFor(a)]+'</em>'+
         (plates[a]?'<span class="plate">'+esc(plates[a])+'</span>':'')+'</h3>'+
         '<div class="petline"><u data-ren="'+a+'">'+st.name+' &middot; rename</u>'+
-        '<span class="xp"><i style="width:'+(nx?Math.round(got/span*100):100)+'%;background:'+HUES[a]+'"></i></span>'+
+        '<span class="xp"><i style="width:'+(nx?Math.round(got/span*100):100)+'%;background:'+hueOf(a)+'"></i></span>'+
         '<span>'+(nx?(nx-pet.xp)+' more to grow up':'fully grown')+'</span></div></div></div>';
     }else{
       head='<div class="rowtop">'+eggSVG(a,46)+
-        '<div class="who"><h3>The '+a+'s <em>'+SUB[a]+'</em></h3>'+
+        '<div class="who"><h3>'+SEC[a].label+' <em>'+SEC[a].sub+'</em></h3>'+
         '<div class="petline">'+(done?'Ready to hatch':'Light up all ten jars and this egg hatches')+
-        (done?'':' <u class="iknow" data-know="'+a+'">I already know my '+a+'s</u>')+'</div></div></div>';
+        (done?'':' <u class="iknow" data-know="'+a+'">I already know '+SEC[a].label.toLowerCase()+'</u>')+'</div></div></div>';
     }
     var jars='<div class="jars">';
     for(var b=1;b<=BMAX;b++){
-      var f=getFact(a,b),full=earned(f);
+      var f=getFact(a,b),full=earned(f),q=factOf(a,b);
       var h=f.n===0?8:(full?100:Math.min(88,26+f.s*(calm?12:18)));
-      jars+='<div class="jar'+(full?' full':'')+'" title="'+a+' × '+b+' = '+(a*b)+(full?'':' · '+f.s+' of '+(calm?REPS:3))+'">'+
-        '<i style="height:'+h+'%;background:'+HUES[a]+'"></i><b>'+a+'×'+b+'</b></div>';
+      jars+='<div class="jar'+(full?' full':'')+'" title="'+q.left+' '+q.op+' '+q.right+' = '+q.ans+(full?'':' · '+f.s+' of '+(calm?REPS:3))+'">'+
+        '<i style="height:'+h+'%;background:'+hueOf(a)+'"></i><b>'+q.left+q.op+q.right+'</b></div>';
     }
     jars+='</div><div class="plank"></div>';
     block.innerHTML=head+jars;
@@ -946,12 +991,12 @@ function buildShelf(){
     if(done&&!(pet&&pet.name)&&queue.indexOf(a)<0)queue.push(a);
   });
   Array.prototype.forEach.call(host.querySelectorAll('[data-ren]'),function(el){
-    el.onclick=function(){renaming=parseInt(el.getAttribute('data-ren'),10);showNamer();};
+    el.onclick=function(){renaming=el.getAttribute('data-ren');showNamer();};
   });
   Array.prototype.forEach.call(host.querySelectorAll('[data-know]'),function(el){
-    el.onclick=function(){knowTable(parseInt(el.getAttribute('data-know'),10));};
+    el.onclick=function(){knowTable(el.getAttribute('data-know'));};
   });
-  $('shelfNote').textContent=countGlow()+' of '+TOTAL+' jars glowing · '+countPets()+' of '+ROWS.length+' pets hatched · '+
+  $('shelfNote').textContent=countGlow()+' of '+totalJars()+' jars glowing · '+countPets()+' of '+SECS.length+' pets hatched · '+
     brewed+' potion'+(brewed===1?'':'s')+' brewed, all different.';
 }
 function showShelf(on){
@@ -981,12 +1026,12 @@ function showStory(){
   var i=pickStoryIndex();usedStories[i]=1;
   var text=fillStory(STORIES[i]);
   storyLog.push(text);save();
-  var named=Object.keys(pets).filter(function(k){return pets[k]&&pets[k].name;});
-  var a=named.length?parseInt(named[Math.floor(Math.random()*named.length)],10):ROWS[0];
+  var named=SECS.filter(function(k){return pets[k]&&pets[k].name;});
+  var a=named.length?named[Math.floor(Math.random()*named.length)]:SECS[0];
   welcomeMode=false;
   $('storyTitle').textContent='A little lab tale';
   $('storyClose').textContent='Back to brewing';
-  $('storyPet').innerHTML=petSVG(designFor(a),96,true,HUES[a]).replace('<svg','<svg class="big"');
+  $('storyPet').innerHTML=petSVG(designFor(a),96,true,hueOf(a)).replace('<svg','<svg class="big"');
   $('storyText').textContent=text;
   $('done').classList.remove('on');
   $('story').classList.add('on');
@@ -998,8 +1043,8 @@ function startWelcome(){
   welcomeMode=true;
   $('storyTitle').textContent='Welcome to the lab!';
   $('storyClose').textContent='See my lab →';
-  var a=ROWS[Math.floor(Math.random()*ROWS.length)];
-  $('storyPet').innerHTML=petSVG(designFor(a),96,true,HUES[a]).replace('<svg','<svg class="big"');
+  var a=SECS[Math.floor(Math.random()*SECS.length)];
+  $('storyPet').innerHTML=petSVG(designFor(a),96,true,hueOf(a)).replace('<svg','<svg class="big"');
   $('storyText').textContent=WELCOME;
   $('story').classList.add('on');
   beep([523,659,784,1046],0.24,0.09);
@@ -1026,42 +1071,86 @@ function buildGrid(){
     for(c=1;c<=10;c++){el=document.createElement('div');el.className='cell';el.id='c_'+r+'_'+c;el.textContent=r*c;g.appendChild(el);}
   }
 }
+function buildNumline(){
+  var g=$('numline');g.innerHTML='';
+  for(var v=0;v<=20;v++){var el=document.createElement('div');el.className='cell';el.id='nl_'+v;el.textContent=v;g.appendChild(el);}
+}
 function openChart(){
   if(!cur)return;
   clearChartTimers();
-  var a=cur.a,b=cur.b,cells=$('grid').querySelectorAll('.cell'),i,c,r;
-  $('chartHead').innerHTML='Counting up by <b>'+a+'</b>';
+  if(SEC[cur.a].op==='x')openGrid();else openNumline();
+  $('chart').classList.add('on');
+}
+/* multiplication: light the table's row up to the answer (count-by) */
+function openGrid(){
+  $('numline').style.display='none';$('grid').style.display='';
+  var n=SEC[cur.a].n,b=cur.b,cells=$('grid').querySelectorAll('.cell'),i,c,r;
+  $('chartHead').innerHTML='Counting up by <b>'+n+'</b>';
   $('chartSay').textContent='';
   for(i=0;i<cells.length;i++){cells[i].classList.remove('band','step','answer','dim');if(!cells[i].classList.contains('hdr'))cells[i].classList.add('dim');}
-  for(c=1;c<=10;c++){var rc=$('c_'+a+'_'+c);if(rc){rc.classList.remove('dim');rc.classList.add('band');}}
+  for(c=1;c<=10;c++){var rc=$('c_'+n+'_'+c);if(rc){rc.classList.remove('dim');rc.classList.add('band');}}
   for(r=1;r<=10;r++){var cc=$('c_'+r+'_'+b);if(cc){cc.classList.remove('dim');cc.classList.add('band');}}
-  $('chart').classList.add('on');
   var step=1;
   (function walk(){
     if(step>b)return;
-    var cell=$('c_'+a+'_'+step);
+    var cell=$('c_'+n+'_'+step);
     if(cell){cell.classList.remove('band');cell.classList.add(step<b?'step':'answer');}
-    var seq=[],k;for(k=1;k<=step;k++)seq.push(a*k);
-    $('chartSay').textContent=step<b?seq.join(' · '):(a+' × '+b+' = '+(a*b)+'  🎉');
-    beep([440+step*45],0.09,0.035);
-    step++;
+    var seq=[],k;for(k=1;k<=step;k++)seq.push(n*k);
+    $('chartSay').textContent=step<b?seq.join(' · '):(n+' × '+b+' = '+(n*b)+'  🎉');
+    beep([440+step*45],0.09,0.035);step++;
     chartTimers.push(setTimeout(walk,620));
+  })();
+}
+/* add/subtract: hop along the number line from start to answer */
+function openNumline(){
+  var q=factOf(cur.a,cur.b),start=q.left,up=(q.op==='+'),n=q.right,end=q.ans,delta=up?1:-1;
+  $('grid').style.display='none';$('numline').style.display='';
+  $('chartHead').innerHTML=(up?'Counting up by <b>':'Counting back by <b>')+n+'</b>';
+  $('chartSay').textContent='';
+  var cells=$('numline').querySelectorAll('.cell'),i,v;
+  for(i=0;i<cells.length;i++){cells[i].classList.remove('band','step','answer');cells[i].classList.add('dim');}
+  var lo=Math.min(start,end),hi=Math.max(start,end);
+  for(v=lo;v<=hi;v++){var cc=$('nl_'+v);if(cc){cc.classList.remove('dim');cc.classList.add('band');}}
+  var pos=start,seq=[start];
+  (function walk(){
+    var cell=$('nl_'+pos);
+    if(cell){cell.classList.remove('band');cell.classList.add(pos===end?'answer':'step');}
+    if(pos===end){$('chartSay').textContent=q.left+' '+q.op+' '+q.right+' = '+q.ans+'  🎉';beep([740],0.12,0.04);return;}
+    $('chartSay').textContent=seq.join(up?' → ':' ← ');
+    beep([440+seq.length*30],0.09,0.035);
+    pos+=delta;seq.push(pos);
+    chartTimers.push(setTimeout(walk,640));
   })();
 }
 function closeChart(){clearChartTimers();$('chart').classList.remove('on');}
 
 /* ================= I already know this ================= */
 function knowTable(a){
-  if(!confirm('Light up all your '+a+'s? Only tap this if you already know them!'))return;
+  if(!confirm('Light up all of '+SEC[a].label+'? Only tap this if you already know them!'))return;
   for(var b=1;b<=BMAX;b++){var f=getFact(a,b);f.n=Math.max(f.n,REPS);f.c=Math.max(f.c,REPS);f.s=Math.max(f.s,REPS);f.ema=f.ema||2500;f.e=1;}
   if(rowDone(a)&&!(pets[a]&&pets[a].name)&&queue.indexOf(a)<0)queue.push(a);
   save();updateMeta();buildShelf();
   if(queue.length)showNamer();
 }
 
+/* ================= practice mode (times tables ↔ add & subtract) ================= */
+function refreshModeChips(){
+  var x=$('modeX'),as=$('modeAS');
+  if(x)x.classList.toggle('live',MODE==='x');
+  if(as)as.classList.toggle('live',MODE==='as');
+}
+function switchMode(m){
+  if(m===MODE)return;
+  MODE=m;buildSecs();queue=[];drops=0;lastKey='';renaming=0;
+  save();refreshModeChips();paintDrops();updateMeta();
+  if($('shelf').classList.contains('on'))buildShelf();else ask();
+}
+
 /* ================= wiring ================= */
 $('shelfBtn').onclick=function(){showShelf(!$('shelf').classList.contains('on'));};
 $('brewBtn').onclick=function(){showShelf(false);};
+$('modeX').onclick=function(){switchMode('x');};
+$('modeAS').onclick=function(){switchMode('as');};
 $('migrateYes').onclick=function(){doMigrate(pendingLegacy);};
 $('migrateNo').onclick=function(){$('migrate').classList.remove('on');pendingLegacy=null;startWelcome();};
 $('modeBtn').onclick=function(){
@@ -1107,17 +1196,19 @@ document.addEventListener('keydown',function(e){
 
 /* ================= go ================= */
 var hadSave=load();
+buildSecs();                       /* fresh starts don't call absorb, so build here too */
 ensureSpecies();
 preload();
 calm=true;                         /* always calm — no clock, no pressure */
 $('modeBtn').style.display='none'; /* hide the timer toggle entirely */
 $('soundBtn').textContent=sound?'Sound on':'Sound off';
 $('soundBtn').setAttribute('aria-pressed',String(sound));
-updateMode();paintDrops();updateMeta();buildGrid();
+refreshModeChips();
+updateMode();paintDrops();updateMeta();buildGrid();buildNumline();
 
 if(hadSave){
   save();
-  ROWS.forEach(function(a){if(rowDone(a)&&!(pets[a]&&pets[a].name))queue.push(a);});
+  SECS.forEach(function(a){if(rowDone(a)&&!(pets[a]&&pets[a].name))queue.push(a);});
   var freshStart=(brewed===0&&storyLog.length===0&&countGlow()===0&&countPets()===0);
   if(queue.length)showNamer();
   else if(freshStart)startWelcome();

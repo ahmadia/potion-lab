@@ -1,6 +1,6 @@
 /* Fizzwick's Potion Lab — offline cache.
    Bump CACHE whenever index.html changes so iPads pull the new version. */
-var CACHE = 'potionlab2-v1';
+var CACHE = 'potionlab2-v2';
 var ASSETS = [
   './',
   './index.html',
